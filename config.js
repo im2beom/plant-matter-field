@@ -4,8 +4,8 @@
  * NEVER include a service_role key or private secret in this file: GitHub Pages serves it publicly.
  */
 window.PM_CONFIG = Object.freeze({
-  supabaseUrl: '',
-  supabasePublishableKey: '',
+  supabaseUrl: 'https://gjtgjnylemhtbjlzzrgv.supabase.co',
+  supabasePublishableKey: 'sb_publishable_5PGyKKQa2ELuivoVToKo5w_2ToujiLO',
   // Used only after deploying the authenticated 'delete-account' Edge Function.
   accountDeletionFunction: 'delete-account'
 });
