@@ -1,11 +1,11 @@
-/** PLANT MATTER RAINFOREST MEMORIES — BETA 04. Local-first field research and optional invitation-only online beta. */
+/** PLANT MATTER RAINFOREST MEMORIES — BETA 05. Local-first field research and optional invitation-only online beta. */
 const DB_NAME = 'plant-matter-field';
 const STORE = 'observations';
 const VERSION = 2;
 const state = { tab:'home', records:[], sharedRecords:[], projects:[], draft:null, draftTimer:null, fullMap:false, member:false, onlineBusy:false, onlineError:'', realtimeChannel:null, mapPhotoList:[], activeExpeditionId:null, routeMap:null, routeTrackingId:null, routeTrackingProject:null, selectedMap:null, search:'', onlyMine:false, photoData:null, landPath:'', db:null,
   projection: (localStorage.getItem('pm-map-projection') === 'mercator' ? 'mercator' : 'equal-earth'),
   equalZoom:1, equalCenter:{x:450,y:225}, detailMode:false, detailFocus:null, leaflet:null,
-  authClient:null, user:null, profile:null, authMode:'signin', busy:false, settingsOpen:false, editingId:null };
+  authClient:null, user:null, profile:null, privateSettings:null, authError:'', authLoading:false, authMode:'signin', busy:false, settingsOpen:false, editingId:null };
 const MAP_NAMES = { 'mercator':'메르카토르 도법 (Mercator)', 'equal-earth':'이퀄 어스 도법 (Equal Earth)' };
 
 const content = document.querySelector('#content');
@@ -213,18 +213,48 @@ function fieldScreen(){
 }
 
 function mapSettingCard(){return `<div class="option-section"><h2>MAP PROJECTION</h2><p class="setting-description">세계 지도를 표시할 도법을 선택하세요. 선택은 이 기기에 저장됩니다.</p><label class="option-radio"><input type="radio" name="projection" value="mercator" ${state.projection==='mercator'?'checked':''}/><span><b>메르카토르 도법</b><small>Mercator · EPSG:3857 기반 상세 지도</small></span></label><label class="option-radio"><input type="radio" name="projection" value="equal-earth" ${state.projection==='equal-earth'?'checked':''}/><span><b>이퀄 어스 도법</b><small>Equal Earth · EPSG:8857 세계 지도, 깊은 확대 시 상세 지도로 전환</small></span></label><div class="info">두 선택 모두 확대·축소가 가능합니다. 이퀄 어스는 세계·광역 화면에 적용하고 세부 도로·산림 자료는 웹 메르카토르 타일로 표시합니다.</div></div>`;}
+function consentRows(profileMode=false) {
+ const checked=(name)=>profileMode && state.privateSettings?.[name] ? 'checked' : '';
+ return `<div class="form-section"><h2>CONSENT &amp; PRIVACY</h2>
+ <label class="consent-item"><input type="checkbox" name="termsAccepted" ${profileMode&&state.privateSettings?.accepted_terms_at?'checked':''} required/><span><b>[필수] 서비스 이용약관</b><small>관찰 기록 공유, 지식재산권 및 서비스 이용 규칙 <a href="./terms.html" target="_blank" rel="noopener">내용 보기</a></small></span></label>
+ <label class="consent-item"><input type="checkbox" name="privacyAccepted" ${profileMode&&state.privateSettings?.accepted_privacy_at?'checked':''} required/><span><b>[필수] 개인정보 처리 안내 확인</b><small>계정 정보, 사진, GPS·민감한 자생지 좌표의 처리 <a href="./privacy.html" target="_blank" rel="noopener">내용 보기</a></small></span></label>
+ <label class="consent-item"><input type="checkbox" name="photoPromotionConsent" ${checked('photo_promotion_consent')}/><span><b>[선택] 업로드 이미지의 홍보·광고 활용 동의</b><small>PLANT MATTER의 웹사이트·SNS·홍보물에 사진을 활용하도록 별도로 허락합니다. 동의하지 않아도 앱 이용과 관찰 기록 공유가 가능합니다. 철회 가능하며, 이용 범위는 실제 약관에 명시해야 합니다.</small></span></label>
+ </div>`;
+}
 function accountEditor(){
- const email=state.user?.email||'';const profile=state.profile||{};
- return `<div class="option-section"><h2>ACCOUNT MANAGEMENT</h2><p class="setting-description">로그인 계정: ${esc(email)}</p><form id="profile-form"><label class="form-field"><span>표시 이름</span><input name="displayName" maxlength="50" required value="${esc(profile.display_name||state.user?.user_metadata?.display_name||'')}" placeholder="앱에 공개할 이름"/></label><label class="option-radio"><input type="checkbox" name="emailVisible" ${profile.email_visible?'checked':''}/><span><b>이메일 주소 공개</b><small>기본값은 비공개. 다른 사용자에게 이메일 공개를 허용합니다.</small></span></label><button class="primary-button wide" type="submit">계정 설정 저장</button></form><div class="settings-actions"><button class="light-button wide" type="button" data-action="signout">로그아웃</button><button class="danger-button wide" type="button" data-action="delete-account">회원 탈퇴</button></div><div class="info warning">회원 탈퇴는 실제 서버 삭제 함수가 배포되어야 작동하며, 기기에 저장한 별도 기록은 JSON 백업 또는 직접 삭제가 필요합니다.</div></div>`;
+ const email=state.user?.email||'';const profile=state.profile||{},priv=state.privateSettings||{},first=!profile.onboarding_completed;
+ return `<div class="option-section"><h2>${first?'WELCOME / FIRST TIME SETUP':'ACCOUNT MANAGEMENT'}</h2>
+ ${first?'<div class="profile-onboarding"><h2>기본 정보를 설정해 주세요.</h2><p class="setting-description">Google 또는 이메일 로그인은 완료됐어요. 공개 이름과 연락처 공개 여부, 이용 동의를 설정하면 앱을 사용할 수 있어요.</p></div>':''}
+ ${state.authError?`<div class="login-error">${esc(state.authError)}<br>테이블 권한 오류라면 README에 포함된 <code>beta05_auth_repair.sql</code>을 Supabase SQL Editor에서 실행해 주세요.</div>`:''}
+ <p class="setting-description">로그인 계정: ${esc(email)}</p><form id="profile-form">
+ <label class="form-field"><span>앱에 표시할 이름 *</span><input name="displayName" maxlength="50" required value="${esc(profile.display_name||state.user?.user_metadata?.display_name||'')}" placeholder="이름 또는 닉네임"/></label>
+ <label class="form-field"><span>Google / 이메일 로그인 주소 (변경 불가)</span><input class="readonly-input" type="email" value="${esc(email)}" readonly/></label>
+ <label class="form-field"><span>전화번호 (선택)</span><input name="phone" type="tel" inputmode="tel" maxlength="25" autocomplete="tel" value="${esc(priv.phone||'')}" placeholder="010-0000-0000"/><small>입력하지 않아도 가입할 수 있어요.</small></label>
+ <label class="consent-item"><input type="checkbox" name="emailVisible" ${profile.email_visible?'checked':''}/><span><b>이메일 주소 공개</b><small>기본 비공개 · 테스트 그룹에 내 이메일 표시</small></span></label>
+ <label class="consent-item"><input type="checkbox" name="phoneVisible" ${priv.phone_visible?'checked':''}/><span><b>전화번호 공개</b><small>기본 비공개 · 테스트 그룹에 내 전화번호 표시</small></span></label>
+ ${consentRows(true)}<button class="primary-button wide" type="submit">${first?'설정 완료하고 시작하기':'계정 설정 저장'}</button></form>
+ <div class="settings-actions"><button class="light-button wide" type="button" data-action="signout">로그아웃</button><button class="danger-button wide" type="button" data-action="delete-account">회원 탈퇴</button></div>
+ <div class="info warning">회원 탈퇴는 서버 삭제 함수가 따로 배포되어야 동작해요. 사진·GPS를 포함한 기기 데이터는 별도 삭제가 필요합니다.</div></div>`;
 }
 function authPanel(){
- if(!state.authClient)return `<div class="option-section"><h2>GOOGLE / EMAIL ACCOUNT</h2><div class="info warning"><strong>인증 서버 연결 전</strong><br>현재 빌드에는 Supabase 프로젝트 주소와 공개키가 설정되지 않았습니다. 실제 회원가입·로그인·탈퇴는 아직 사용할 수 없습니다. OPTIONS의 설정 화면과 개인 기록 기능은 테스트할 수 있습니다.</div><p class="footnote">Supabase 프로젝트 생성 후 config.js에 URL과 공개키를 넣고 SQL 정책을 적용하면 기능을 활성화할 수 있습니다. 비밀 키는 GitHub에 올리지 마세요.</p></div>`;
+ if(!state.authClient)return `<div class="option-section"><h2>GOOGLE / EMAIL ACCOUNT</h2><div class="info warning">인증 서버 미연결 · config.js의 공개 URL/키를 확인해 주세요.</div></div>`;
  if(state.user)return accountEditor();
  const signup=state.authMode==='signup';
- return `<div class="option-section"><h2>${signup?'CREATE ACCOUNT':'SIGN IN'}</h2><button type="button" class="google-button" data-action="google-login">Google 계정으로 계속하기</button><p class="divider-label">또는 이메일</p><form id="auth-form"><label class="form-field"><span>이메일</span><input name="email" type="email" autocomplete="email" required placeholder="you@example.com"/></label>${signup?'<label class="form-field"><span>표시 이름</span><input name="displayName" maxlength="50" required placeholder="기록에 사용할 이름"/></label>':''}<label class="form-field"><span>비밀번호</span><input name="password" type="password" minlength="8" required autocomplete="${signup?'new-password':'current-password'}" placeholder="8자 이상"/></label>${signup?'<label class="option-radio"><input type="checkbox" name="emailVisible"/><span><b>이메일을 다른 사용자에게 공개</b><small>기본적으로 비공개로 설정됩니다.</small></span></label>':''}<button class="primary-button wide" type="submit">${signup?'이메일로 가입하기':'이메일로 로그인'}</button></form><div class="auth-switch"><button type="button" class="text-button" data-action="auth-toggle">${signup?'이미 계정이 있어요 · 로그인':'새 계정 만들기'}</button><button type="button" class="text-button" data-action="reset-password">비밀번호 찾기</button></div><p class="footnote">가입 시 이메일 확인을 권장합니다. 승인된 테스터만 온라인 공유할 수 있고 기존 기기 기록은 자동 게시되지 않습니다.</p></div>`;
+ return `<div class="option-section"><h2>${signup?'CREATE ACCOUNT':'SIGN IN'}</h2>
+ ${state.authError?`<div class="login-error">${esc(state.authError)}<button class="light-button wide" data-action="auth-retry" type="button">다시 시도하기</button></div>`:''}
+ <button type="button" class="google-button" data-action="google-login" ${state.authLoading?'disabled':''}>${state.authLoading?'Google 로그인 연결 중…':'Google 계정으로 계속하기'}</button>
+ <p class="divider-label">또는 이메일</p><form id="auth-form">
+ <label class="form-field"><span>이메일</span><input name="email" type="email" autocomplete="email" required placeholder="you@example.com"/></label>
+ ${signup?'<label class="form-field"><span>표시 이름</span><input name="displayName" maxlength="50" required placeholder="앱에서 사용할 이름"/></label>':''}
+ <label class="form-field"><span>비밀번호</span><input name="password" type="password" minlength="8" required autocomplete="${signup?'new-password':'current-password'}" placeholder="8자 이상"/></label>
+ ${signup?`<div class="info">이메일 확인 후 첫 로그인 시 프로필 공개 범위와 이용약관 동의를 다시 설정합니다.</div>${consentRows(false)}`:''}
+ <button class="primary-button wide" type="submit">${signup?'이메일로 가입하기':'이메일로 로그인'}</button></form>
+ <div class="auth-switch"><button type="button" class="text-button" data-action="auth-toggle">${signup?'이미 계정이 있어요 · 로그인':'새 계정 만들기'}</button><button type="button" class="text-button" data-action="reset-password">비밀번호 찾기</button></div>
+ <p class="footnote">Google 로그인 완료 후에도 첫 가입 정보 설정이 필요합니다. 실제 온라인 공유는 승인된 테스터만 가능해요.</p></div>`;
 }
-function optionsScreen(){return `<section class="page"><div class="eyebrow">PREFERENCES & ACCOUNT</div><h1>OPTIONS</h1><p class="lead">계정과 지도 표기를 관리할 수 있습니다.</p>${mapSettingCard()}${authPanel()}<div class="option-section"><h2>ONLINE BETA</h2><p class="setting-description">${esc(invitedNotice())}</p>${state.onlineError?`<p class="footnote">오류: ${esc(state.onlineError)}</p>`:''}</div><div class="option-section"><h2>APPLICATION</h2><p class="setting-description">PLANT MATTER RAINFOREST MEMORIES<br>BETA 04 · Pretendard Regular 400</p><p class="footnote">초대된 계정만 온라인 관찰 기록을 공유할 수 있습니다. 공개 수준을 확인하고 민감 서식지 좌표는 비공개로 관리하세요.</p></div></section>`;}
+function optionsScreen(){return `<section class="page"><div class="eyebrow">PREFERENCES & ACCOUNT</div><h1>OPTIONS</h1><p class="lead">계정과 지도 표기를 관리할 수 있습니다.</p>${mapSettingCard()}${authPanel()}<div class="option-section"><h2>ONLINE BETA</h2><p class="setting-description">${esc(invitedNotice())}</p>${state.onlineError?`<p class="footnote">오류: ${esc(state.onlineError)}</p>`:''}</div><div class="option-section"><h2>APPLICATION</h2><p class="setting-description">RAINFOREST MEMORIES BY PLANT MATTER<br>BETA 05 · Pretendard Regular 400</p><p class="footnote">초대된 계정만 온라인 관찰 기록을 공유할 수 있습니다. 공개 수준을 확인하고 민감 서식지 좌표는 비공개로 관리하세요.</p></div></section>`;}
 function render(){
+ if(state.user && !state.profile?.onboarding_completed && state.tab!=='options')state.tab='options';
  if(state.leaflet){state.leaflet.remove();state.leaflet=null;}
  if(state.routeMap){state.routeMap.remove();state.routeMap=null;}
  const screens={home:homeScreen,map:mapScreen,record:formScreen,profile:()=>state.activeExpeditionId?expeditionRouteScreen():fieldScreen(),options:optionsScreen};
@@ -309,28 +339,58 @@ async function addSuggestion(form){const id=form.elements.recordId.value,name=tx
 function download(name,text){const blob=new Blob([text],{type:name.endsWith('.gpx')?'application/gpx+xml;charset=utf-8':'application/json;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),45000);}
 function exportRecords(){if(!state.records.length&&!state.projects.length){toast('백업할 기록이 없습니다.');return;}if(!confirm('JSON 파일에 비공개 GPS 원본 좌표·사진·탐사 경로가 포함됩니다. 안전한 곳에 보관할까요?'))return;download(`plant-matter-field-backup-${new Date().toISOString().slice(0,10)}.json`,JSON.stringify({app:'PLANT MATTER FIELD',schemaVersion:2,exportedAt:new Date().toISOString(),observations:state.records,expeditions:state.projects},null,2));toast('백업 파일 다운로드를 요청했어요.');}
 async function importRecords(file){if(!file)return;try{if(file.size>40*1024*1024)throw Error('40MB 이하 파일을 사용해 주세요.');const payload=JSON.parse(await file.text());if(payload.app!=='PLANT MATTER FIELD'||!Array.isArray(payload.observations))throw Error('PLANT MATTER FIELD 백업 파일이 아닙니다.');const items=payload.observations.filter(r=>r&&typeof r.id==='string'&&r.id.startsWith('PMF-')&&!r.isDemo&&typeof r.scientificName==='string').slice(0,500);const projects=Array.isArray(payload.expeditions)?payload.expeditions.filter(p=>p&&typeof p.id==='string'&&p.id.startsWith('EXP-')&&typeof p.name==='string').slice(0,200):[];if(!items.length&&!projects.length)throw Error('가져올 유효한 기록이 없습니다.');if(!confirm(`관찰 기록 ${items.length}개와 탐사 프로젝트 ${projects.length}개를 가져옵니다. 같은 ID는 덮어씁니다. 계속할까요?`))return;for(const r of items){const safe={...r};if(!isSafePhoto(safe.photoData))safe.photoData=null;safe.suggestions=Array.isArray(safe.suggestions)?safe.suggestions:[];await dbAction('readwrite',s=>s.put(safe));}for(const p of projects){const safe={...p,routeStops:routeStopsFor(p).filter(x=>x&&typeof x.name==='string'&&routeCoords(x)).slice(0,500),routeTrack:routeTrackFor(p).filter(routeCoords).slice(0,20000)};await namedStore('expeditions','readwrite',s=>s.put(safe));}await reload();await loadExtras();render();toast(`관찰 ${items.length}개 · 탐사 ${projects.length}개를 가져왔어요.`);}catch(e){toast(`가져오기 실패: ${e.message||e}`);}}
+const authTimeout=(promise,ms=10000)=>Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error('서버 응답이 늦어 로그인 처리가 중단됐어요. 다시 시도해 주세요.')),ms))]);
+function authErrorMessage(error){
+ const message=String(error?.message||error||'알 수 없는 오류');
+ if(/permission denied for table profiles/i.test(message))return '프로필 데이터베이스 권한이 없습니다. Supabase에 BETA 05 권한 복구 SQL을 적용해 주세요.';
+ if(/is_beta_member|schema cache/i.test(message))return '베타 권한 확인 함수가 설치되지 않았어요. BETA 05 권한 복구 SQL을 적용해 주세요.';
+ return message;
+}
 async function initAuth(){
  const cfg=window.PM_CONFIG||{};
- if(!cfg.supabaseUrl||!cfg.supabasePublishableKey||!window.supabase?.createClient){return;}
- try{
-  const client=window.supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-  state.authClient=client;const {data:{session}}=await client.auth.getSession();state.user=session?.user||null;
-  if(state.user){await readProfile();await isMember();}
-  client.auth.onAuthStateChange((_evt,session)=>{
-   const before=state.user?.id;state.user=session?.user||null;
-   setTimeout(async()=>{if(state.user?.id!==before){await readProfile();await isMember();}if(state.tab==='options'||state.tab==='profile')render();},0);
+ if(!cfg.supabaseUrl||!cfg.supabasePublishableKey||!window.supabase?.createClient)return;
+ try {
+  const client=window.supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'}});
+  state.authClient=client;
+  const params=new URLSearchParams(location.search),hashParams=new URLSearchParams(location.hash.slice(1));
+  const callbackError=params.get('error_description')||hashParams.get('error_description')||params.get('error')||hashParams.get('error');
+  if(callbackError){state.authError='Google 인증 실패: '+callbackError;sessionStorage.removeItem('pm-oauth-started');history.replaceState({},'',location.origin+location.pathname);}
+  const result=await authTimeout(client.auth.getSession(),13000);
+  if(result.error)throw result.error;
+  state.user=result.data.session?.user||null;
+  if(state.user){sessionStorage.removeItem('pm-oauth-started');await Promise.allSettled([authTimeout(readProfile(),12000),authTimeout(isMember(),12000)]);}
+  else {const started=Number(sessionStorage.getItem('pm-oauth-started')||0);if(started&&Date.now()-started>25000){sessionStorage.removeItem('pm-oauth-started');state.authError='Google 로그인이 완료되지 않았습니다. 다시 로그인해 주세요.';}}
+  client.auth.onAuthStateChange((event,session)=>{
+   const previousId=state.user?.id;state.user=session?.user||null;
+   if(event==='SIGNED_IN'){sessionStorage.removeItem('pm-oauth-started');state.authError='';}
+   if(event==='SIGNED_OUT'){state.profile=null;state.privateSettings=null;state.member=false;}
+   setTimeout(()=>{
+    (async()=>{if(state.user?.id!==previousId){await Promise.allSettled([authTimeout(readProfile(),12000),authTimeout(isMember(),12000)]);}if(state.tab==='options'||state.tab==='profile'||(state.user&&!state.profile?.onboarding_completed))render();})().catch(e=>{state.authError=authErrorMessage(e);render();});
+   },0);
   });
- }catch(e){console.warn('Auth unavailable',e);}
+ } catch(e){state.authError=authErrorMessage(e);console.warn('Auth unavailable',e);}
 }
 async function readProfile(){
- if(!state.authClient||!state.user){state.profile=null;return;}
- const {data,error}=await state.authClient.from('profiles').select('id,display_name,email_visible,public_email').eq('id',state.user.id).maybeSingle();
- if(error){console.warn('Profile fetch',error);state.profile=null;return;}state.profile=data;
+ if(!state.authClient||!state.user){state.profile=null;state.privateSettings=null;return;}
+ try{
+  const {data,error}=await authTimeout(state.authClient.from('profiles').select('id,display_name,email_visible,public_email,public_phone,onboarding_completed').eq('id',state.user.id).maybeSingle());
+  if(error)throw error;
+  state.profile=data||null;
+  const {data:settings,error:settingsError}=await authTimeout(state.authClient.from('profile_private_settings').select('phone,phone_visible,accepted_terms_at,accepted_privacy_at,photo_promotion_consent').eq('id',state.user.id).maybeSingle());
+  if(settingsError)throw settingsError;
+  state.privateSettings=settings||null;state.authError='';
+ }catch(e){state.authError=authErrorMessage(e);console.warn('Profile fetch',e);state.profile=null;state.privateSettings=null;}
 }
 async function signInGoogle(){
  if(!state.authClient)return toast('인증 서버가 연결되지 않았습니다.');
- const {error}=await state.authClient.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname}});
- if(error)toast(`Google 로그인 실패: ${error.message}`);
+ if(state.authLoading)return;
+ state.authLoading=true;state.authError='';render();
+ try{
+  sessionStorage.setItem('pm-oauth-started',String(Date.now()));
+  const {error}=await authTimeout(state.authClient.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname,skipBrowserRedirect:false}}),12000);
+  if(error)throw error;
+ }catch(e){sessionStorage.removeItem('pm-oauth-started');state.authError='Google 로그인 오류: '+authErrorMessage(e);toast(state.authError);}
+ finally{state.authLoading=false;render();}
 }
 async function submitAuth(form){
  if(!state.authClient)return toast('인증 서버 연결이 필요합니다.');
@@ -338,24 +398,38 @@ async function submitAuth(form){
  try{
   const email=form.elements.email.value.trim(),password=form.elements.password.value;
   if(state.authMode==='signup'){
-   const name=form.elements.displayName.value.trim(),visible=form.elements.emailVisible.checked;
-   const {data,error}=await state.authClient.auth.signUp({email,password,options:{data:{display_name:name,email_visible:visible},emailRedirectTo:location.origin+location.pathname}});
+   if(!form.elements.termsAccepted.checked||!form.elements.privacyAccepted.checked)throw Error('필수 이용약관과 개인정보 처리 안내에 동의해 주세요.');
+   const name=form.elements.displayName.value.trim();
+   const {data,error}=await authTimeout(state.authClient.auth.signUp({email,password,options:{data:{display_name:name},emailRedirectTo:location.origin+location.pathname}}));
    if(error)throw error;
-   if(data.session){state.user=data.user;await readProfile();await isMember();toast('계정이 생성되었습니다.');}else toast('가입 확인 이메일을 확인해 주세요.');
+   if(data.session){state.user=data.user;await readProfile();await isMember();toast('계정이 생성되었습니다. 기본 정보를 설정해 주세요.');}
+   else toast('가입 확인 이메일을 확인해 주세요. 첫 로그인 시 프로필 동의 설정이 이어집니다.');
   }else{
-   const {error}=await state.authClient.auth.signInWithPassword({email,password});if(error)throw error;
-   await readProfile();await isMember();toast('로그인했습니다.');
+   const {data,error}=await authTimeout(state.authClient.auth.signInWithPassword({email,password}));if(error)throw error;
+   state.user=data.user;await Promise.allSettled([authTimeout(readProfile(),12000),authTimeout(isMember(),12000)]);toast('로그인했습니다.');
   }
-  render();
- }catch(e){toast(`인증 오류: ${e.message||e}`);}finally{btn.disabled=false;}
+  state.authError='';render();
+ }catch(e){state.authError=authErrorMessage(e);toast(`인증 오류: ${state.authError}`);render();}
+ finally{btn.disabled=false;}
 }
 async function submitProfile(form){
  if(!state.authClient||!state.user)return toast('로그인해 주세요.');
- const display_name=form.elements.displayName.value.trim(),email_visible=form.elements.emailVisible.checked;
+ const display_name=form.elements.displayName.value.trim(),phone=form.elements.phone.value.trim();
  if(!display_name)return toast('표시 이름을 입력해 주세요.');
- const public_email=email_visible?state.user.email:null;
- const {error}=await state.authClient.from('profiles').upsert({id:state.user.id,display_name,email_visible,public_email},{onConflict:'id'});
- if(error)toast(`저장 실패: ${error.message}`);else{await readProfile();toast('계정 설정이 저장됐습니다.');render();}
+ if(phone&&!/^[+0-9() .-]{4,25}$/.test(phone))return toast('전화번호 형식을 확인해 주세요.');
+ if(!form.elements.termsAccepted.checked||!form.elements.privacyAccepted.checked)return toast('필수 약관을 확인하고 동의해 주세요.');
+ const btn=form.querySelector('button[type=submit]');btn.disabled=true;
+ try{
+  const {error}=await authTimeout(state.authClient.rpc('save_member_profile',{
+   p_display_name:display_name,p_phone:phone||null,p_email_visible:form.elements.emailVisible.checked,p_phone_visible:form.elements.phoneVisible.checked,
+   p_accept_terms:form.elements.termsAccepted.checked,p_accept_privacy:form.elements.privacyAccepted.checked,
+   p_photo_promotion_consent:form.elements.photoPromotionConsent.checked
+  }));
+  if(error)throw error;
+  await readProfile();if(!state.profile?.onboarding_completed)throw Error('설정 저장은 완료됐지만 프로필 상태를 확인하지 못했어요. 다시 열어 주세요.');
+  toast('계정 정보와 동의 설정을 저장했어요.');render();
+ }catch(e){state.authError=authErrorMessage(e);toast(`저장 실패: ${state.authError}`);render();}
+ finally{btn.disabled=false;}
 }
 async function resetPassword(){
  if(!state.authClient)return toast('인증 서버 연결이 필요합니다.');
@@ -363,7 +437,7 @@ async function resetPassword(){
  const {error}=await state.authClient.auth.resetPasswordForEmail(email.trim(),{redirectTo:location.origin+location.pathname});
  toast(error?`재설정 실패: ${error.message}`:'비밀번호 재설정 이메일을 요청했습니다.');
 }
-async function signOut(){if(!state.authClient)return;const {error}=await state.authClient.auth.signOut();if(error)return toast(error.message);state.user=null;state.profile=null;state.member=false;state.sharedRecords=[];if(state.realtimeChannel)await state.authClient.removeChannel(state.realtimeChannel);state.realtimeChannel=null;render();toast('로그아웃했습니다.');}
+async function signOut(){if(!state.authClient)return;const {error}=await state.authClient.auth.signOut();if(error)return toast(error.message);state.user=null;state.profile=null;state.privateSettings=null;state.authError='';state.member=false;state.sharedRecords=[];if(state.realtimeChannel)await state.authClient.removeChannel(state.realtimeChannel);state.realtimeChannel=null;render();toast('로그아웃했습니다.');}
 async function deleteAccount(){
  if(!state.authClient||!state.user)return;
  if(!confirm('계정을 삭제하면 복구할 수 없습니다. 서버에 저장된 계정 정보가 삭제됩니다. 계속할까요?'))return;
@@ -371,7 +445,7 @@ async function deleteAccount(){
  const cfg=window.PM_CONFIG;
  const {data,error}=await state.authClient.functions.invoke(cfg.accountDeletionFunction||'delete-account',{method:'POST',body:{confirm:'DELETE'}});
  if(error||!data?.deleted)return toast('계정 삭제 함수를 사용할 수 없습니다. 관리자 서버 설정을 확인해 주세요.');
- await state.authClient.auth.signOut();state.user=null;state.profile=null;render();toast('계정 삭제가 완료됐습니다. 기기에 저장된 관찰 기록은 유지됩니다.');
+ await state.authClient.auth.signOut();state.user=null;state.profile=null;state.privateSettings=null;render();toast('계정 삭제가 완료됐습니다. 기기에 저장된 관찰 기록은 유지됩니다.');
 }
 // BETA 04: offline drafts, expeditions, full-screen map, photo viewer and invited online beta.
 function namedStore(store,mode,callback){return new Promise((resolve,reject)=>{
@@ -590,6 +664,7 @@ document.addEventListener('click',async event=>{
   case 'open-detail-map':openDetailMap(true);break;
   case 'equal-back':state.detailMode=false;render();break;
   case 'google-login':await signInGoogle();break;
+  case 'auth-retry':state.authError='';state.authLoading=false;render();break;
   case 'auth-toggle':state.authMode=state.authMode==='signin'?'signup':'signin';render();break;
   case 'reset-password':await resetPassword();break;
   case 'signout':await signOut();break;

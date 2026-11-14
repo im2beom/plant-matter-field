@@ -1,7 +1,7 @@
 {
   "id": "./",
-  "name": "PLANT MATTER RAINFOREST MEMORIES",
-  "short_name": "PLANT MATTER",
+  "name": "RAINFOREST MEMORIES BY PLANT MATTER",
+  "short_name": "RAINFOREST MEMORIES",
   "description": "세계의 야생 식물과 자생 환경을 기록하는 학술 관찰 노트",
   "start_url": "./",
   "scope": "./",
@@ -10,7 +10,17 @@
   "theme_color": "#ffffff",
   "lang": "ko",
   "icons": [
-    { "src": "./assets/icon-180.png", "sizes": "180x180", "type": "image/png", "purpose": "any" },
-    { "src": "./assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+    {
+      "src": "./assets/icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
   ]
 }
