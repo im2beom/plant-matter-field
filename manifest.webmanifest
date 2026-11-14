@@ -1,15 +1,16 @@
 {
-  "name":"PLANT MATTER FIELD",
-  "short_name":"PM FIELD",
-  "description":"식물 탐사·학술 관찰 필드 아카이브",
-  "start_url":"./",
-  "scope":"./",
-  "display":"standalone",
-  "background_color":"#f4f7f0",
-  "theme_color":"#123b2a",
-  "lang":"ko",
-  "icons":[
-    {"src":"./assets/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
-    {"src":"./assets/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+  "id": "./",
+  "name": "PLANT MATTER RAINFOREST MEMORIES",
+  "short_name": "PLANT MATTER",
+  "description": "세계의 야생 식물과 자생 환경을 기록하는 학술 관찰 노트",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "lang": "ko",
+  "icons": [
+    { "src": "./assets/icon-180.png", "sizes": "180x180", "type": "image/png", "purpose": "any" },
+    { "src": "./assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
   ]
 }
