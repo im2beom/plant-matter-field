@@ -1,8 +1,0 @@
-.DS_Store
-*.log
-node_modules/
-*.json.bak
-# Never commit private field observations or local exports
-plant-matter-field-backup-*.json
-.env
-.env.*
