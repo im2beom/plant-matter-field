@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#123b2a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="PM FIELD" />
+  <meta name="description" content="PLANT MATTER FIELD — 식물 탐사와 자생 환경의 학술 관찰 기록" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="./assets/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png" />
+  <link rel="stylesheet" href="./styles.css" />
+  <title>PLANT MATTER FIELD</title>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <button class="brand" data-nav="map" aria-label="홈으로">
+        <span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 29c0-11 1-19 9-24M18 20C8 19 7 12 7 8c8 0 11 5 11 12m2-5c2-8 7-9 11-8-1 7-4 9-11 8"/></svg></span>
+        <span class="brand-text"><strong>PLANT MATTER</strong><small>FIELD / BETA 02</small></span>
+      </button>
+      <span class="status">LOCAL FIELD ARCHIVE</span>
+    </header>
+    <main id="content" aria-live="polite"><div class="loader">필드 아카이브를 준비하고 있습니다…</div></main>
+    <nav class="bottom-nav" aria-label="메인 메뉴">
+      <button data-nav="map" class="nav-item active"><span class="nav-icon">◉</span><span>세계 지도</span></button>
+      <button data-nav="library" class="nav-item"><span class="nav-icon">▦</span><span>관찰 기록</span></button>
+      <button data-nav="add" class="nav-add" aria-label="새 기록 추가"><span>+</span></button>
+      <button data-nav="field" class="nav-item"><span class="nav-icon">◒</span><span>내 필드</span></button>
+    </nav>
+  </div>
+  <div id="detail-overlay" class="overlay hidden" aria-hidden="true"></div>
+  <div id="toast" class="toast hidden" role="status"></div>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
