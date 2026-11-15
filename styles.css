@@ -100,3 +100,50 @@
 
 /* BETA 06 usability: entire neutral photo area acts as upload target. */
 #photo-box{cursor:pointer}#photo-box:focus-visible{outline:2px solid #315b49;outline-offset:3px}
+/* BETA 07 — location picker, address search, visibility, place plant inventory */
+.location-help{margin:0 0 10px;line-height:1.7}
+.location-picker{border:1px solid #ddd;background:#f6f6f6;margin:0 0 10px}
+.location-picker-map{height:260px;width:100%;z-index:1}
+.location-picker-map .map-unavailable{height:260px}
+.location-actions{margin:0 0 4px}
+.location-readout{font-size:11px;color:#333;margin:8px 0 18px;line-height:1.6;overflow-wrap:anywhere}
+.location-readout.empty{color:#999}
+.picker-pin{background:none;border:0}
+.picker-pin span{display:block;width:26px;height:26px;margin:0 0 0 1px;border-radius:50% 50% 50% 0;background:#222;border:3px solid #fff;transform:rotate(-45deg);box-shadow:0 1px 5px rgba(0,0,0,.35)}
+.address-search-row{display:flex;gap:8px}
+.address-search-row input{flex:1;min-width:0}
+.address-search-row button{flex-shrink:0;min-height:45px}
+.address-results{display:grid;margin:-6px 0 12px}
+.address-results .mini-muted{margin:4px 0;line-height:1.7}
+.address-result{text-align:left;background:#fff;border:1px solid #e3e3e3;border-top:0;padding:11px 12px;font-size:12px;line-height:1.5;cursor:pointer}
+.address-result:first-child{border-top:1px solid #e3e3e3}
+.address-result:hover,.address-result:focus-visible{background:#f6f6f6}
+.address-result small{display:block;color:#888;font-size:10px;margin-top:2px}
+.range-row{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center}
+.range-row>span{color:#999;font-size:12px}
+.visibility-state{border:1px solid #e3e3e3;background:#fafafa;padding:13px 14px;margin:14px 0 12px}
+.visibility-state strong{display:block;font-size:13px}
+.visibility-state small{display:block;font-size:11px;color:#777;margin-top:4px;line-height:1.6}
+.visibility-state.shared{border-color:#cfe0d6;background:#f6faf7}
+.visibility-section .light-button{margin-bottom:10px}
+.private-tag{color:#444;border-color:#aaa}
+.place-plant-list{margin-top:14px}
+.place-plant-card{display:flex;gap:14px;padding:15px 0;border-top:1px solid #eee}
+.place-plant-card:last-child{border-bottom:1px solid #eee}
+.pp-photo{width:96px;height:96px;flex-shrink:0;background:#f5f5f5;display:grid;place-items:center;overflow:hidden}
+.pp-photo img{width:100%;height:100%;object-fit:cover}
+.pp-photo svg{width:70%;height:70%;filter:grayscale(1);opacity:.6}
+.pp-info{flex:1;min-width:0}
+.pp-info em{display:block;font-size:15px;margin:7px 0 5px;overflow-wrap:anywhere}
+.pp-info p{font-size:12px;color:#555;margin:0 0 6px;line-height:1.6;overflow-wrap:anywhere}
+.pp-origin span{color:#999;font-size:10px;margin-right:4px}
+.pp-metrics{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:11px;color:#333;margin:2px 0 7px}
+.pp-note{color:#777!important;white-space:pre-line}
+.pp-info .small-actions{margin-top:8px}
+.pp-info .small-actions button{min-height:34px;padding:6px 10px;font-size:11px;min-width:0}
+.pp-status.available{color:#2f7158;border-color:#bcd7c8}
+.pp-status.reserved{color:#8a6a2f;border-color:#e6d4b0}
+.legacy-title{font-size:11px;letter-spacing:.08em;color:#777;margin:22px 0 6px}
+.map-link{display:block;text-align:center;text-decoration:none;margin-top:12px;color:inherit}
+#pp-photo-box{cursor:pointer}#pp-photo-box:focus-visible{outline:2px solid #315b49;outline-offset:3px}
+@media(max-width:420px){.pp-photo{width:80px;height:80px}.location-picker-map{height:240px}}

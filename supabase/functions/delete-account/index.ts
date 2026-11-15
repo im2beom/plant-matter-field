@@ -23,6 +23,11 @@ Deno.serve(async (req) => {
     const {data:{user},error}=await userClient.auth.getUser(jwt);
     if(error||!user) return Response.json({error:'Unauthorized'}, {status:401,headers:cors});
     const admin=createClient(url,service,{auth:{persistSession:false}});
+    // Remove the user's uploaded photos (observations + place plants) before deleting the account.
+    for (const bucket of ['field-photos','place-photos']) {
+      const { data: files } = await admin.storage.from(bucket).list(user.id, { limit: 1000 });
+      if (files?.length) await admin.storage.from(bucket).remove(files.map((f) => `${user.id}/${f.name}`));
+    }
     const {error:deleteError}=await admin.auth.admin.deleteUser(user.id);
     if(deleteError) throw deleteError;
     return Response.json({deleted:true}, {status:200,headers:cors});
