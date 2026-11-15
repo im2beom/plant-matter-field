@@ -156,6 +156,10 @@ const STRINGS = {
     "en": "Verified",
     "ja": "確認済み"
   },
+  "동정 완료": {
+    "en": "Identified",
+    "ja": "同定済み"
+  },
   "국가": {
     "en": "Country",
     "ja": "国"
@@ -1023,7 +1027,7 @@ export function applyTranslations(root=document,locale='ko'){
  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
  const textNodes=[];while(walker.nextNode())textNodes.push(walker.currentNode);
  for(const node of textNodes){
-  const parent=node.parentElement;if(!parent||parent.closest('script,style,textarea,.long-text,.comment-row p,.venue-plant-list,.feed-name,.record-info em,.pp-info em,.pp-origin,.pp-note,.address-result,.location-readout'))continue;
+  const parent=node.parentElement;if(!parent||parent.closest('script,style,textarea,.long-text,.comment-row p,.venue-plant-list,.feed-name,.record-info em,.pp-info em,.pp-origin,.pp-note,.address-result,.location-readout,.person-info,.author-chip,.dex-tile em,.dex-head h1,.dex-place,.contact-row strong,.profile-head-info strong'))continue;
   const value=node.textContent||'';
   const trimmed=value.trim();if(!trimmed)continue;
   const translated=translateText(trimmed,locale);
