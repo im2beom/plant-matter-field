@@ -254,3 +254,52 @@
 .pg-count{font-size:10px;color:#888;margin-top:7px}
 .venue-pop-photo{aspect-ratio:4/3;background:#f3f3f3;margin:8px 0 10px;overflow:hidden}
 .dex-place-photo{aspect-ratio:4/3;width:100%;max-width:220px;background:#f3f3f3;overflow:hidden}
+/* BETA 10 — account type, ranking, plants list */
+.account-type{border:1px solid #e3e3e3;padding:13px 13px 12px;margin:0 0 16px}
+.account-type-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:9px}
+.account-type-head span{font-size:12px;letter-spacing:.06em}.account-type-head small{font-size:10px;color:#999}
+.segmented.small{margin:0 0 10px}.segmented.small button{min-height:38px;font-size:12px;letter-spacing:.02em}
+.cat-row{margin:0 0 8px;gap:6px;flex-wrap:wrap}
+.account-desc{display:block;font-size:11px;color:#777;line-height:1.7}
+.dex-account{font-size:12px;color:#2f7158;margin:4px 0 0}
+.rank-list{list-style:none;margin:0;padding:0}
+.rank-row{width:100%;display:flex;align-items:center;gap:11px;padding:10px 0;border:0;border-top:1px solid #eee;background:#fff;text-align:left;cursor:pointer;color:inherit}
+.rank-list li:last-child .rank-row{border-bottom:1px solid #eee}
+.rank-no{width:22px;text-align:center;font-size:14px;color:#999;flex-shrink:0}
+.rank-top{color:#222;font-size:16px}.rank-1{color:#2f7158}
+.rank-score{text-align:right;flex-shrink:0}.rank-score b{display:block;font-size:17px;font-weight:400}.rank-score small{font-size:10px;color:#888}
+.rank-more{display:block;margin:10px auto 0;font-size:11px}
+.pp-add-row{display:flex;gap:8px}.pp-add-row select{flex:1;min-width:0;border:1px solid #ddd;min-height:43px;padding:0 10px;background:#fff;border-radius:0;font-size:13px}
+.my-plants{margin-top:6px}
+.venue-manage-photo{width:56px;aspect-ratio:4/3;background:#f3f3f3;overflow:hidden;flex-shrink:0}
+.venue-manage-photo img{width:100%;height:100%;object-fit:cover;display:block}
+/* BETA 11 — image titles. All four section titles share one cap height (--title-cap);
+   ratios are image height ÷ capital-letter height measured in the supplied artwork. */
+:root{--title-cap:clamp(21px,5.6vw,28px)}
+.title-img{margin:10px 0 16px;line-height:0;font-style:normal}
+.title-img img{display:block;width:auto;max-width:100%;object-fit:contain;object-position:left center}
+.title-img .t-profile,.title-img .t-options{height:calc(var(--title-cap) * 92 / 91)}
+.title-img .t-field-map{height:calc(var(--title-cap) * 89 / 91)}
+.title-img .t-home{height:calc(var(--title-cap) * 242 / 91)}
+.compact-home .title-img{margin:14px 0 14px}
+/* Header lockup: a little smaller than the section titles (≈70% cap height), never wider than the space left by the BETA badge. */
+.topbar{min-height:76px}
+.brand{max-width:calc(100% - 75px)}
+.brand-lockup{display:block;width:clamp(200px,70vw,330px);max-width:100%;height:auto}
+/* BETA 11 — record title, observation photo slider */
+.title-img picture{display:block}
+.title-img .t-new-record{height:calc(var(--title-cap) * 240 / 91)}
+@media(min-width:520px){.title-img .t-new-record{height:var(--title-cap)}}
+.obs-photo-actions{margin:-4px 0 18px}
+.habitat-field .vp-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.photo-slider{margin:18px 0 6px}
+.photo-slider .pg-slide{cursor:zoom-in}
+.pg-meta{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:11px;color:#666}
+.pg-meta.single{justify-content:flex-start}
+.pg-label{flex:1;min-width:0}
+.pg-dots{display:flex;gap:5px}
+.pg-dots i{width:6px;height:6px;border-radius:50%;background:#d4d4d4}
+.pg-dots i.on{background:#222}
+.pg-arrow{border:1px solid #ddd;background:#fff;width:32px;height:30px;font-size:16px;line-height:1;color:#333;cursor:pointer;flex-shrink:0}
+.feed-photo{position:relative}
+.photo-count{position:absolute;right:8px;bottom:8px;background:rgba(255,255,255,.92);color:#222;font-size:10px;padding:3px 7px}

@@ -76,7 +76,8 @@ grant execute on function public.display_name_available(text) to authenticated;
 -- Only approved members can search, and only approved members who finished setup are listed.
 -- Names match partially; the login e-mail must match exactly and is never returned
 -- (only the e-mail the person chose to make public is shown).
-create or replace function public.search_members(p_query text)
+drop function if exists public.search_members(text); -- lets this file re-run after BETA 10 changed the columns
+create function public.search_members(p_query text)
 returns table (id uuid, display_name text, avatar_path text, public_email text, public_phone text)
 language sql stable security definer set search_path = '' as $$
  with q as (

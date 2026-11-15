@@ -13,7 +13,7 @@
   <link rel="icon" type="image/png" sizes="512x512" href="./assets/icon-512.png" />
   <link rel="stylesheet" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-  <link rel="stylesheet" href="./styles.css?v=9.0" />
+  <link rel="stylesheet" href="./styles.css?v=11.0" />
   <script src="./config.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
@@ -23,10 +23,9 @@
   <div class="app">
     <header class="topbar">
       <button type="button" class="brand" data-nav="home" aria-label="홈으로 이동">
-        <span class="brand-title">RAINFOREST MEMORIES</span>
-        <span class="brand-byline"><span class="brand-by">BY</span><img src="./assets/plant-matter-wordmark.png" alt="PLANT MATTER" class="brand-logo" /></span>
+        <img src="./assets/titles/brand-lockup.png" alt="RAINFOREST MEMORIES — Designed by PLANT MATTER" class="brand-lockup" width="1705" height="275" />
       </button>
-      <span class="status">BETA 09</span>
+      <span class="status">BETA 11</span>
     </header>
     <main id="content" aria-live="polite"><div class="loader">식물 관찰 기록을 불러오는 중…</div></main>
     <nav class="bottom-nav" aria-label="메인 메뉴">
@@ -40,6 +39,6 @@
   <div id="detail-overlay" class="overlay hidden" aria-hidden="true"></div>
   <div id="image-lightbox" class="image-lightbox hidden" role="dialog" aria-label="사진 전체 화면 보기" aria-hidden="true"></div>
   <div id="toast" class="toast hidden" role="status"></div>
-  <script type="module" src="./app.js?v=9.0"></script>
+  <script type="module" src="./app.js?v=11.0"></script>
 </body>
 </html>

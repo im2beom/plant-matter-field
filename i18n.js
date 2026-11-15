@@ -999,6 +999,282 @@ const STRINGS = {
   "장소 및 보유 식물 보기": {
     "en": "See venue and plants",
     "ja": "場所と植物リストを見る"
+  },
+  "홈으로 이동": {
+    "en": "Go to home",
+    "ja": "ホームへ"
+  },
+  "메인 메뉴": {
+    "en": "Main menu",
+    "ja": "メインメニュー"
+  },
+  "사진 전체 화면 보기": {
+    "en": "View photo full screen",
+    "ja": "写真を全画面表示"
+  },
+  "식물 검색": {
+    "en": "Search plants",
+    "ja": "植物を検索"
+  },
+  "확대 축소 및 이동 가능한 이퀄 어스 세계 지도": {
+    "en": "Zoomable Equal Earth world map",
+    "ja": "拡大・移動できるイコールアース世界地図"
+  },
+  "확대 축소 가능한 상세 지도": {
+    "en": "Zoomable detailed map",
+    "ja": "拡大できる詳細地図"
+  },
+  "지도 확대": {
+    "en": "Zoom in",
+    "ja": "拡大"
+  },
+  "지도 축소": {
+    "en": "Zoom out",
+    "ja": "縮小"
+  },
+  "메르카토르 도법 (Mercator)": {
+    "en": "Mercator projection",
+    "ja": "メルカトル図法"
+  },
+  "이퀄 어스 도법 (Equal Earth)": {
+    "en": "Equal Earth projection",
+    "ja": "イコールアース図法"
+  },
+  "위치 미입력": {
+    "en": "Location not entered",
+    "ja": "位置未入力"
+  },
+  "예: Ficus sp. (미동정 가능)": {
+    "en": "e.g. Ficus sp. (unidentified is fine)",
+    "ja": "例：Ficus sp.（未同定でも可）"
+  },
+  "예: Moraceae": {
+    "en": "e.g. Moraceae",
+    "ja": "例：Moraceae"
+  },
+  "운무림 / 산지 열대우림": {
+    "en": "Cloud forest / montane rainforest",
+    "ja": "雲霧林 / 山地熱帯雨林"
+  },
+  "이끼, 암면, 낙엽층 등": {
+    "en": "Moss, rock face, leaf litter…",
+    "ja": "苔、岩面、落葉層など"
+  },
+  "조도계 모델 / 측정 높이": {
+    "en": "Light meter model / measuring height",
+    "ja": "照度計の機種 / 測定の高さ"
+  },
+  "작은 군락 형태": {
+    "en": "Small colony",
+    "ja": "小さな群落"
+  },
+  "예: Fraser's Hill 2026": {
+    "en": "e.g. Fraser's Hill 2026",
+    "ja": "例：Fraser's Hill 2026"
+  },
+  "이름 또는 닉네임": {
+    "en": "Name or nickname",
+    "ja": "名前またはニックネーム"
+  },
+  "예: Ficus punctata": {
+    "en": "e.g. Ficus punctata",
+    "ja": "例：Ficus punctata"
+  },
+  "예: 쿠알라룸푸르 공항": {
+    "en": "e.g. Kuala Lumpur airport",
+    "ja": "例：クアラルンプール空港"
+  },
+  "예: 도보 이동, 현장에서 2일 체류": {
+    "en": "e.g. on foot, stayed 2 days",
+    "ja": "例：徒歩、現地で2日滞在"
+  },
+  "8자 이상": {
+    "en": "At least 8 characters",
+    "ja": "8文字以上"
+  },
+  "앱에서 사용할 이름": {
+    "en": "Name shown in the app",
+    "ja": "アプリで使う名前"
+  },
+  "아직 관찰 기록이 없습니다.": {
+    "en": "No observations yet.",
+    "ja": "まだ観察記録がありません。"
+  },
+  "탐사명": {
+    "en": "Expedition name",
+    "ja": "探査名"
+  },
+  "지역": {
+    "en": "Area",
+    "ja": "地域"
+  },
+  "＋ 탐사 프로젝트 추가": {
+    "en": "＋ Add expedition",
+    "ja": "＋ 探査プロジェクトを追加"
+  },
+  "아직 만든 탐사가 없습니다.": {
+    "en": "No expeditions yet.",
+    "ja": "まだ探査がありません。"
+  },
+  "↻ 온라인 기록 동기화": {
+    "en": "↻ Sync online records",
+    "ja": "↻ オンライン記録を同期"
+  },
+  "JSON 내보내기": {
+    "en": "Export JSON",
+    "ja": "JSONを書き出す"
+  },
+  "JSON 가져오기": {
+    "en": "Import JSON",
+    "ja": "JSONを読み込む"
+  },
+  "백업 파일에는 정확한 좌표와 사진이 포함될 수 있으니 비공개로 보관하세요. 기록 데이터는 기존 BETA 02/03과 같은 기기 저장소를 사용합니다.": {
+    "en": "Backup files can contain exact coordinates and photos, so keep them private. Records use the same on-device storage as earlier betas.",
+    "ja": "バックアップには正確な座標や写真が含まれる場合があるため、非公開で保管してください。記録は以前のベータと同じ端末内ストレージを使います。"
+  },
+  "내 기록은 현재 기기에 저장됩니다. 온라인 공유는 Supabase 프로젝트 연결과 초대 승인이 필요합니다.": {
+    "en": "Your records are stored on this device. Online sharing needs a connected project and an approved invitation.",
+    "ja": "記録はこの端末に保存されます。オンライン共有にはプロジェクト接続と招待の承認が必要です。"
+  },
+  "Mercator · EPSG:3857 기반 상세 지도": {
+    "en": "Mercator · EPSG:3857 detailed map",
+    "ja": "メルカトル · EPSG:3857の詳細地図"
+  },
+  "Equal Earth · EPSG:8857 세계 지도, 깊은 확대 시 상세 지도로 전환": {
+    "en": "Equal Earth · EPSG:8857 world map; switches to the detailed map when zoomed in",
+    "ja": "イコールアース · EPSG:8857世界地図。大きく拡大すると詳細地図に切り替わります"
+  },
+  "두 선택 모두 확대·축소가 가능합니다. 이퀄 어스는 세계·광역 화면에 적용하고 세부 도로·산림 자료는 웹 메르카토르 타일로 표시합니다.": {
+    "en": "Both options can zoom. Equal Earth is used for world and regional views; detailed roads and forests use Web Mercator tiles.",
+    "ja": "どちらも拡大・縮小できます。イコールアースは世界・広域表示に使い、道路や森林の詳細はWebメルカトルのタイルで表示します。"
+  },
+  "초대된 테스터 · 온라인 공유 가능": {
+    "en": "Invited tester · online sharing available",
+    "ja": "招待済みテスター · オンライン共有可"
+  },
+  "로그인하면 초대 여부를 확인합니다.": {
+    "en": "Sign in to check your invitation.",
+    "ja": "ログインすると招待状況を確認します。"
+  },
+  "이 계정은 아직 테스트 초대 승인을 받지 않았습니다.": {
+    "en": "This account has not been approved for the beta yet.",
+    "ja": "このアカウントはまだベータ招待が承認されていません。"
+  },
+  "온라인 미연결 · Supabase 설정 후 사용 가능": {
+    "en": "Offline · available after the server is configured",
+    "ja": "オフライン · サーバー設定後に利用可能"
+  },
+  "GPS 정확도": {
+    "en": "GPS accuracy",
+    "ja": "GPS精度"
+  },
+  "필드 번호": {
+    "en": "Field number",
+    "ja": "フィールド番号"
+  },
+  "관찰자": {
+    "en": "Observer",
+    "ja": "観察者"
+  },
+  "개체군": {
+    "en": "Population",
+    "ja": "個体群"
+  },
+  "동반 식생": {
+    "en": "Associated species",
+    "ja": "随伴植生"
+  },
+  "표본": {
+    "en": "Voucher",
+    "ja": "標本"
+  },
+  "새 관찰 기록을 이 기기에 저장했어요.": {
+    "en": "New observation saved on this device.",
+    "ja": "新しい観察記録をこの端末に保存しました。"
+  },
+  "관찰 기록의 수정 사항을 저장했어요.": {
+    "en": "Changes saved.",
+    "ja": "変更を保存しました。"
+  },
+  "탐사 프로젝트를 추가했어요.": {
+    "en": "Expedition added.",
+    "ja": "探査プロジェクトを追加しました。"
+  },
+  "기록을 삭제했습니다.": {
+    "en": "Record deleted.",
+    "ja": "記録を削除しました。"
+  },
+  "온라인 동기화를 확인했습니다.": {
+    "en": "Online sync checked.",
+    "ja": "オンライン同期を確認しました。"
+  },
+  "아직 등록한 이동 지점이 없어요. 아래에서 출발지를 추가해 주세요.": {
+    "en": "No stops yet. Add your starting point below.",
+    "ja": "まだ地点がありません。下で出発地を追加してください。"
+  },
+  "장소 이름 / 출발지·경유지·목적지": {
+    "en": "Place name / start · stop · destination",
+    "ja": "地点名 / 出発地・経由地・目的地"
+  },
+  "도착 / 머문 시작 날짜": {
+    "en": "Arrival / start date",
+    "ja": "到着・滞在開始日"
+  },
+  "출발 / 머문 종료 날짜": {
+    "en": "Departure / end date",
+    "ja": "出発・滞在終了日"
+  },
+  "위도": {
+    "en": "Latitude",
+    "ja": "緯度"
+  },
+  "경도": {
+    "en": "Longitude",
+    "ja": "経度"
+  },
+  "◎ 현재 위치": {
+    "en": "◎ Current location",
+    "ja": "◎ 現在地"
+  },
+  "새 지점 입력": {
+    "en": "New stop",
+    "ja": "新しい地点"
+  },
+  "현장 메모 / 이동 수단": {
+    "en": "Notes / transport",
+    "ja": "メモ・移動手段"
+  },
+  "탐사 중 앱 화면을 켜둔 상태에서 실제 GPS 이동 궤적을 기록할 수 있어요. 다른 앱으로 이동하거나 화면이 꺼지면 iPhone PWA에서 지속 기록이 보장되지 않아요.": {
+    "en": "You can record your real GPS track while the app stays open. If you switch apps or the screen turns off, continuous recording isn't guaranteed in the iPhone home-screen app.",
+    "ja": "アプリを開いている間は実際のGPS軌跡を記録できます。他のアプリに切り替えたり画面が消えたりすると、iPhoneのホーム画面アプリでは記録が続かない場合があります。"
+  },
+  "● GPS 기록 시작": {
+    "en": "● Start GPS track",
+    "ja": "● GPS記録を開始"
+  },
+  "■ 기록 종료": {
+    "en": "■ Stop recording",
+    "ja": "■ 記録を終了"
+  },
+  "· 세부 지형도는 온라인 연결 필요": {
+    "en": "· Detailed maps need a connection",
+    "ja": "· 詳細地図はオンライン接続が必要"
+  },
+  "↓ GPX 경로 내보내기": {
+    "en": "↓ Export GPX route",
+    "ja": "↓ GPXルートを書き出す"
+  },
+  "GPS 이동 기록과 일정 기록은 자동 공개되지 않으며, 백업 파일에 포함되므로 외부 공유에 주의해 주세요.": {
+    "en": "GPS tracks and schedules are never published automatically, but they are included in backups — be careful when sharing them.",
+    "ja": "GPSの軌跡や日程は自動公開されませんが、バックアップに含まれるため共有に注意してください。"
+  },
+  "탐사 이동 경로 지도": {
+    "en": "Expedition route map",
+    "ja": "探査ルート地図"
+  },
+  "GPS 기록 중 · 앱을 열린 상태로 유지해 주세요.": {
+    "en": "Recording GPS · keep the app open.",
+    "ja": "GPS記録中 · アプリを開いたままにしてください。"
   }
 };
 const LANGS={ko:'ko-KR',en:'en-US',ja:'ja-JP'};
@@ -1011,26 +1287,35 @@ export function translateText(value,locale){
  if(plural)return locale==='en'?`${plural[1]} records`:locale==='ja'?`${plural[1]}件の記録`:clean;
  return value;
 }
+const SKIP='script,style,textarea,.dex-group,.venue-manage strong,.pp-add-row select,.long-text,.comment-row p,.venue-plant-list,.feed-name,.record-info em,.pp-info em,.pp-origin,.pp-note,.address-result,.location-readout,.person-info,.author-chip,.dex-tile em,.dex-head h1,.dex-place,.contact-row strong,.profile-head-info strong';
+// The original (Korean) text of every node/attribute we rewrite is remembered, so switching
+// ko → en → ja → ko always translates from the source instead of from the previous language.
+// (Previously static parts such as the bottom navigation stayed in English after en → ja or en → ko.)
+const TEXT_SOURCE=new WeakMap(),ATTR_SOURCE=new WeakMap();
+function sourceOf(memo,current){return memo&&memo.written===current?memo.orig:current;}
 export function applyTranslations(root=document,locale='ko'){
  if(!['ko','en','ja'].includes(locale))locale='ko';
  document.documentElement.lang=LANGS[locale].slice(0,2);
  document.documentElement.setAttribute('data-language',locale);
- const nodes = root.querySelectorAll?.('*') || [];
- for(const el of nodes){
-  if(el.matches?.('[placeholder], [title], [aria-label]')){
-   for(const attr of ['placeholder','title','aria-label']){
-    const old=el.getAttribute(attr);if(old){const translated=translateText(old,locale);if(translated!==old)el.setAttribute(attr,translated);}
-   }
+ const scope=root.querySelectorAll?root:document;
+ const elements=[...(scope.matches?.('[placeholder],[title],[aria-label]')?[scope]:[]),...scope.querySelectorAll('[placeholder],[title],[aria-label]')];
+ for(const el of elements){
+  const memo=ATTR_SOURCE.get(el)||{};
+  for(const attr of ['placeholder','title','aria-label']){
+   const current=el.getAttribute(attr);if(!current)continue;
+   const orig=sourceOf(memo[attr],current),out=locale==='ko'?orig:translateText(orig,locale);
+   if(out!==current)el.setAttribute(attr,out);
+   memo[attr]={orig,written:out};
   }
+  ATTR_SOURCE.set(el,memo);
  }
- if(locale==='ko')return;
  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
  const textNodes=[];while(walker.nextNode())textNodes.push(walker.currentNode);
  for(const node of textNodes){
-  const parent=node.parentElement;if(!parent||parent.closest('script,style,textarea,.long-text,.comment-row p,.venue-plant-list,.feed-name,.record-info em,.pp-info em,.pp-origin,.pp-note,.address-result,.location-readout,.person-info,.author-chip,.dex-tile em,.dex-head h1,.dex-place,.contact-row strong,.profile-head-info strong'))continue;
-  const value=node.textContent||'';
-  const trimmed=value.trim();if(!trimmed)continue;
-  const translated=translateText(trimmed,locale);
-  if(translated!==trimmed)node.textContent=value.replace(trimmed,translated);
+  const parent=node.parentElement;if(!parent||parent.closest(SKIP))continue;
+  const current=node.textContent||'',orig=sourceOf(TEXT_SOURCE.get(node),current),trimmed=orig.trim();if(!trimmed)continue;
+  const out=locale==='ko'?orig:orig.replace(trimmed,translateText(trimmed,locale));
+  if(out!==current)node.textContent=out;
+  TEXT_SOURCE.set(node,{orig,written:out});
  }
 }
