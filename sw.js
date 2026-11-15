@@ -1,5 +1,5 @@
-const CACHE='pm-rainforest-beta-05-v1';
-const FILES=['./','./index.html','./styles.css?v=5.0','./app.js?v=5.0','./config.js','./manifest.webmanifest','./terms.html','./privacy.html','./assets/landPath.json','./assets/plant-matter-wordmark.png','./assets/staurogyne-reference.jpg','./assets/icon-180.png','./assets/icon-512.png'];
+const CACHE='pm-rainforest-beta-06-v1';
+const FILES=['./','./index.html','./styles.css?v=6.0','./app.js?v=6.0','./i18n.js','./config.js','./manifest.webmanifest','./terms.html','./privacy.html','./assets/landPath.json','./assets/plant-matter-wordmark.png','./assets/staurogyne-reference.jpg','./assets/icon-180.png','./assets/icon-512.png'];
 self.addEventListener('install',event=>{
  event.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting()));
 });
