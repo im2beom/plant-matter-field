@@ -275,7 +275,7 @@
 .venue-manage-photo img{width:100%;height:100%;object-fit:cover;display:block}
 /* BETA 11 — image titles. All four section titles share one cap height (--title-cap);
    ratios are image height ÷ capital-letter height measured in the supplied artwork. */
-:root{--title-cap:clamp(21px,5.6vw,28px)}
+:root{--title-cap:clamp(17px,4.5vw,22px)}
 .title-img{margin:10px 0 16px;line-height:0;font-style:normal}
 .title-img img{display:block;width:auto;max-width:100%;object-fit:contain;object-position:left center}
 .title-img .t-profile,.title-img .t-options{height:calc(var(--title-cap) * 92 / 91)}
@@ -289,7 +289,7 @@
 /* BETA 11 — record title, observation photo slider */
 .title-img picture{display:block}
 .title-img .t-new-record{height:calc(var(--title-cap) * 240 / 91)}
-@media(min-width:520px){.title-img .t-new-record{height:var(--title-cap)}}
+@media(min-width:360px){.title-img .t-new-record{height:var(--title-cap)}}
 .obs-photo-actions{margin:-4px 0 18px}
 .habitat-field .vp-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
 .photo-slider{margin:18px 0 6px}
@@ -303,3 +303,87 @@
 .pg-arrow{border:1px solid #ddd;background:#fff;width:32px;height:30px;font-size:16px;line-height:1;color:#333;cursor:pointer;flex-shrink:0}
 .feed-photo{position:relative}
 .photo-count{position:absolute;right:8px;bottom:8px;background:rgba(255,255,255,.92);color:#222;font-size:10px;padding:3px 7px}
+/* BETA 12 */
+/* ② one title position for all five tabs */
+.page>.eyebrow:first-child,.compact-home>.eyebrow:first-child{display:block;margin:0}
+.home-intro.compact-home{margin:0 0 20px;padding:0}
+.title-img,.compact-home .title-img{margin:12px 0 16px}
+/* ⑦ ⑨ stacking order: map < full-screen map < detail < photo viewer < toast */
+.map-expand{z-index:30}
+.overlay{z-index:300}
+.image-lightbox{z-index:1000}
+.toast{z-index:1200}
+/* ⑬ mixed photo ratios */
+.vp-thumb{aspect-ratio:1/1}
+.vp-img img{object-fit:contain;background:#f3f3f3}
+.pg-track{align-items:flex-start;overflow-y:hidden;transition:height .25s ease}
+.pg-slide{aspect-ratio:auto}
+.pg-slide:empty{aspect-ratio:4/3}
+.pg-slide img{width:100%;height:auto;display:block;object-fit:contain}
+.feed-photo:has(img){aspect-ratio:auto}
+.feed-photo img{height:auto}
+/* ⑧ grouped pins */
+.group-marker span{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#202020;color:#fff;font-size:11px;border:3px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.3)}
+.group-marker.places span{background:#2f7158}
+.group-marker{background:none;border:0}
+.group-list{display:grid;max-height:260px;overflow:auto;margin-top:8px}
+.group-row{display:flex;align-items:center;gap:10px;padding:8px 0;border:0;border-top:1px solid #eee;background:#fff;text-align:left;cursor:pointer;color:inherit;width:100%}
+.group-thumb{width:46px;height:46px;flex-shrink:0;background:#f3f3f3;display:grid;place-items:center;overflow:hidden}
+.group-thumb img{width:100%;height:100%;object-fit:cover}.group-thumb svg{width:70%;height:70%;filter:grayscale(1);opacity:.6}
+.group-thumb.place{color:#2f7158;font-size:20px}
+.group-copy{flex:1;min-width:0}.group-copy em,.group-copy strong{display:block;font-size:13px;overflow-wrap:anywhere}.group-copy small{display:block;font-size:10px;color:#888}
+/* ⑩ discovery location */
+.detail-loc-map{height:180px;border:1px solid #ddd;margin:12px 0 8px;cursor:pointer;z-index:1}
+.loc-text{font-size:13px;margin:4px 0}
+.loc-hidden{margin:12px 0 4px;padding:14px;background:#f7f7f7;color:#666;font-size:12px}
+.mine-tag{color:#8a6a2f;border-color:#e6d4b0;margin-left:4px;vertical-align:middle}
+.country-pin span{background:#7a7a7a}
+/* ⑫ ⑭ ⑯ */
+.cat-heading{display:block;font-size:11px;color:#555;letter-spacing:.04em;margin:2px 0 6px}
+.place-plant-card .pp-photo{border:0;padding:0;cursor:pointer;position:relative}
+.backup-all{margin-bottom:10px}
+.share-section .privacy-group{margin-top:0}
+/* BETA 12 — expeditions */
+.exp-editor-map{height:280px;width:100%;z-index:1}
+.exp-editor{margin-top:16px}
+.exp-stop{border:1px solid #e3e3e3;padding:12px;margin:0 0 10px;background:#fff}
+.exp-stop.picking{border-color:#2f7158;box-shadow:0 0 0 2px #2f715822}
+.exp-stop-head{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.exp-stop-head strong{flex:1;font-size:13px}
+.exp-badge{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#555;color:#fff;font-size:11px;flex-shrink:0}
+.exp-badge.start{background:#2f7158}.exp-badge.end{background:#222}
+.exp-wp-tools{display:flex;gap:4px}
+.exp-stop-name{width:100%;border:1px solid #ddd;min-height:42px;padding:10px;font-size:13px;border-radius:0;background:#fff}
+.exp-stop-loc{font-size:11px;color:#333;margin:7px 0 8px;overflow-wrap:anywhere}.exp-stop-loc.empty{color:#a2412f}
+.exp-stop-tools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.exp-stop-tools .light-button{min-height:36px;padding:6px 4px;font-size:11px}
+.exp-stop-tools .light-button.on{background:#2f7158;color:#fff;border-color:#2f7158}
+.exp-search{margin-top:8px}
+.exp-roundtrip{display:flex;align-items:center;gap:7px;font-size:12px;margin:0 0 9px}
+.exp-more{margin-top:8px}.exp-more>summary{cursor:pointer;font-size:11px;color:#666}
+.exp-more .form-field{margin:8px 0 0}
+.exp-add-wp{margin:0 0 10px;border-style:dashed}
+.exp-actions{margin:14px 0 0}
+.exp-pin span{width:28px;height:28px;font-size:11px}
+.exp-pin.start span{background:#2f7158}.exp-pin.end span{background:#111}
+.exp-settings{border:1px solid #e3e3e3;margin:6px 0 16px;background:#fafafa}
+.exp-settings>summary{cursor:pointer;list-style:none;padding:12px 13px;font-size:12px;display:flex;align-items:center;gap:8px}
+.exp-settings>summary::-webkit-details-marker{display:none}
+.exp-settings>.exp-setting-row,.exp-settings>p{margin:0 13px 12px}
+.exp-setting-row{display:flex;align-items:center;gap:12px;justify-content:space-between}
+.exp-setting-row b{display:block;font-size:13px}.exp-setting-row small{display:block;font-size:10px;color:#777;line-height:1.6}
+.exp-setting-row.disabled{opacity:.5}
+.switch{position:relative;width:44px;height:26px;border-radius:13px;border:0;background:#cfcfcf;flex-shrink:0;cursor:pointer;padding:0}
+.switch span{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s}
+.switch.on{background:#2f7158}.switch.on span{left:21px}
+.switch:disabled{cursor:not-allowed}
+.exp-public{color:#2f7158;border-color:#bcd7c8}
+.dex-exp{width:100%;display:flex;align-items:center;gap:10px;padding:12px 0;border:0;border-bottom:1px solid #eee;background:#fff;text-align:left;cursor:pointer;color:inherit}
+.dex-exp>span:first-child{flex:1;min-width:0}.dex-exp strong{display:block;font-size:14px}.dex-exp small{display:block;font-size:10px;color:#888;margin-top:2px}
+.exp-public-map{height:260px}
+.page h1.title-img{margin:12px 0 16px;line-height:0;font-size:0;font-style:normal}
+.pp-photo-img{display:grid;place-items:center;width:100%;height:100%}
+.pp-photo-img img{width:100%;height:100%;object-fit:cover}.pp-photo-img svg{width:70%;height:70%;filter:grayscale(1);opacity:.6}
+.route-pin.exp-pin{background:none;border:0}
+.route-pin.exp-pin span{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#333;color:#fff;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35);font-size:11px;line-height:1}
+.route-pin.exp-pin.start span{background:#2f7158}.route-pin.exp-pin.end span{background:#111}

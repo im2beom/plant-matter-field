@@ -1,5 +1,5 @@
 import { applyTranslations, translateText } from './i18n.js';
-/** PLANT MATTER RAINFOREST MEMORIES — BETA 11. Local-first field research and optional invitation-only online beta. */
+/** PLANT MATTER RAINFOREST MEMORIES — BETA 12. Local-first field research and optional invitation-only online beta. */
 const DB_NAME = 'plant-matter-field';
 const STORE = 'observations';
 const VERSION = 2;
@@ -12,7 +12,7 @@ Object.assign(state,{pickerMap:null,pickerMarker:null,venueMap:null,venueMarker:
 Object.assign(state,{people:{},userResults:[],userQuery:'',userSearchState:'',userSearchError:'',dexUserId:null,dex:null,dexRecords:[],dexMap:null,detailBackUser:null,avatarBusy:false,beta08Missing:false});
 Object.assign(state,{friendships:[],beta09Missing:false,friendChannel:null,profileView:'me',venuePhotos:[],venuePhotosFor:null});
 Object.assign(state,{ranking:[],rankingApprox:false,rankingAll:false,beta10Missing:false,leafletView:null});
-Object.assign(state,{formPhotos:[],formHabitat:[]});
+Object.assign(state,{expEditor:null,expeditionCreate:false,expLayer:null,expSettingsOpen:false,ppPhotos:[],formPhotos:[],formHabitat:[],mapGroups:{},selectedGroup:null,detailLocMap:null,detailLocRecord:null,coarseMigrated:false});
 const translateUI=(root=document)=>applyTranslations(root,state.locale);
 const tt=(ko,en,ja)=>state.locale==='en'?en:state.locale==='ja'?ja:ko;
 // Fixed vocabulary stored as Korean values (growth form, phenology, …), translated part by part for display.
@@ -29,12 +29,7 @@ const fmt = (v) => { try { return new Date(v).toLocaleDateString(state.locale===
 const localDate = () => { const d = new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16); };
 const numberOrNull = v => v === '' || v === null || v === undefined ? null : Number(v);
 const STATUS={unidentified:'미동정',proposed:'동정 제안',review:'검토 중',verified:'동정 완료'};
-const DEMO = [
- {id:'DEMO-001',isDemo:true,scientificName:'Ficus sp.',family:'Moraceae',country:'Malaysia',locality:'Fraser’s Hill',latitude:3.71,longitude:101.74,elevation:1250,habitat:'산지 열대우림',habit:'착생·포복',substrate:'이끼가 덮인 수피',phenology:'영양생장',lux:'920',temperature:'22.8',humidity:'87',measurementSource:'sample',observedAt:'2026-11-05T09:20:00Z',privacy:'coarse',notes:'실제 관찰 데이터가 아닌 UI 예시입니다.',identificationStatus:'unidentified',suggestions:[]},
- {id:'DEMO-002',isDemo:true,scientificName:'Sonerila sp.',family:'Melastomataceae',country:'Thailand',locality:'Khao Yai',latitude:14.38,longitude:101.4,elevation:860,habitat:'습윤한 숲 하층',habit:'지생',substrate:'낙엽층',phenology:'개화',lux:'620',temperature:'26.1',humidity:'91',measurementSource:'sample',observedAt:'2026-10-12T04:10:00Z',privacy:'coarse',notes:'실제 관찰 데이터가 아닌 UI 예시입니다.',identificationStatus:'unidentified',suggestions:[]},
- {id:'DEMO-003',isDemo:true,scientificName:'Lepanthes sp.',family:'Orchidaceae',country:'Ecuador',locality:'Andean cloud forest',latitude:-0.32,longitude:-78.8,elevation:1820,habitat:'운무림',habit:'착생',substrate:'이끼가 낀 가지',phenology:'개화',lux:'1100',temperature:'18.3',humidity:'95',measurementSource:'sample',observedAt:'2026-09-18T14:05:00Z',privacy:'coarse',notes:'실제 관찰 데이터가 아닌 UI 예시입니다.',identificationStatus:'unidentified',suggestions:[]},
- {id:'DEMO-004',isDemo:true,scientificName:'Begonia sp.',family:'Begoniaceae',country:'Cameroon',locality:'Mount Cameroon',latitude:4.19,longitude:9.18,elevation:1370,habitat:'산지림',habit:'암생',substrate:'습윤한 암면',phenology:'영양생장',lux:'1450',temperature:'21.1',humidity:'89',measurementSource:'sample',observedAt:'2026-08-25T10:30:00Z',privacy:'coarse',notes:'실제 관찰 데이터가 아닌 UI 예시입니다.',identificationStatus:'unidentified',suggestions:[]},
-];
+const DEMO = []; // BETA 12: demo plants removed
 const samples=()=>[...state.records.filter(r=>r.syncPending || !state.sharedRecords.some(shared=>shared.id===r.id)),...state.sharedRecords,...DEMO];
 const getRecord=id=>samples().find(o=>o.id===id)||state.dexRecords?.find(o=>o.id===id);
 const canEdit=r=>r&&!r.isDemo&&(state.records.some(x=>x.id===r.id)||(r.isCloud&&r.ownerId===state.user?.id));
@@ -55,11 +50,6 @@ function project(lat, lon){
  const y=A1*t+A2*t*t2+A3*t*t6+A4*t*t6*t2;
  return {x:450+153*x,y:225-153*y};
 }
-function publicPoint(record){
- if(!['public','coarse'].includes(record.privacy) || !Number.isFinite(record.latitude)||!Number.isFinite(record.longitude))return null;
- if(record.privacy==='public')return {latitude:record.latitude,longitude:record.longitude};
- return {latitude:Math.floor(record.latitude)+.5,longitude:Math.floor(record.longitude)+.5};
-}
 function graticule(){let paths=[];for(let lat=-60;lat<=60;lat+=30){let d='';for(let lon=-180;lon<=180;lon+=5){const p=project(lat,lon);d+=(lon===-180?'M':'L')+r1(p.x)+','+r1(p.y)+' ';}paths.push(d)}for(let lon=-150;lon<=180;lon+=30){let d='';for(let lat=-90;lat<=90;lat+=5){const p=project(lat,lon);d+=(lat===-90?'M':'L')+r1(p.x)+','+r1(p.y)+' ';}paths.push(d)}return paths;}
 const gridPaths=graticule();
 const botanicalSvg=`<svg viewBox="0 0 120 120" fill="none" aria-hidden="true"><path d="M59 110Q53 82 62 54Q66 40 77 30" stroke="#285943" stroke-width="3"/><path d="M62 76Q25 43 19 56Q19 82 62 76M64 61Q97 28 104 40Q104 61 64 61" fill="#658b68"/><path d="M70 43Q45 7 36 18Q39 43 70 43" fill="#90af88"/><path d="M62 92Q84 73 98 80Q94 103 62 92" fill="#6e9b78"/></svg>`;
@@ -73,17 +63,19 @@ function mapMarkup(){
  }
  const cx=state.equalCenter.x,cy=state.equalCenter.y,z=state.equalZoom,w=900/z,h=450/z;
  const left=Math.max(0,Math.min(cx-w/2,900-w)),top=Math.max(0,Math.min(cy-h/2,450-h));
- const markers=mapRecords().map(r=>{const point=publicPoint(r);if(!point)return '';const {x,y}=project(point.latitude,point.longitude),active=r.id===state.selectedMap;return `<g class="map-pin" data-map-id="${esc(r.id)}" role="button" tabindex="0" aria-label="${esc(tt(`${r.scientificName||'미동정 식물'} 관찰 기록`,`${r.scientificName||'Unidentified plant'} observation`,`${r.scientificName||'未同定の植物'}の観察記録`))}"><circle cx="${x}" cy="${y}" r="${active?12:8}" fill="${r.isDemo?'#8f8f8f':'#202020'}" stroke="#fff" stroke-width="3"/><circle cx="${x}" cy="${y}" r="18" fill="transparent"/></g>`;}).join('');
- const placeMarkers=filteredPlaces().map(v=>{const {x,y}=project(v.latitude,v.longitude);return `<g class="venue-pin" data-venue-id="${esc(v.id)}" role="button" tabindex="0" aria-label="${esc(v.name)}"><rect x="${x-10}" y="${y-10}" width="20" height="20" rx="4" fill="#2f7158" stroke="white" stroke-width="2"/><path d="M${x-5} ${y+2}v-6h10v6M${x-3} ${y-4}v-3h6v3" fill="none" stroke="white" stroke-width="1.6"/></g>`;}).join('');
+ const pins=mapPinGroups().map(g=>{const {x,y}=project(g.latitude,g.longitude);if(g.items.length>1)return groupPinSvg(g,x,y);const it=g.items[0];
+  if(it.type==='place'){const v=it.v;return `<g class="venue-pin" data-venue-id="${esc(v.id)}" role="button" tabindex="0" aria-label="${esc(v.name)}"><rect x="${x-10}" y="${y-10}" width="20" height="20" rx="4" fill="#2f7158" stroke="white" stroke-width="2"/><path d="M${x-5} ${y+2}v-6h10v6M${x-3} ${y-4}v-3h6v3" fill="none" stroke="white" stroke-width="1.6"/></g>`;}
+  const r=it.r,active=r.id===state.selectedMap;return `<g class="map-pin" data-map-id="${esc(r.id)}" role="button" tabindex="0" aria-label="${esc(tt(`${r.scientificName||'미동정 식물'} 관찰 기록`,`${r.scientificName||'Unidentified plant'} observation`,`${r.scientificName||'未同定の植物'}の観察記録`))}"><circle cx="${x}" cy="${y}" r="${active?12:8}" fill="#202020" stroke="#fff" stroke-width="3"/><circle cx="${x}" cy="${y}" r="18" fill="transparent"/></g>`;}).join('');
 
- return `<div class="map-frame equal-map"><svg id="equal-svg" viewBox="${left} ${top} ${w} ${h}" role="img" aria-label="확대 축소 및 이동 가능한 이퀄 어스 세계 지도" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="900" height="450" fill="#f6f6f6"/>${gridPaths.map(d=>`<path d="${d}" stroke="#dddddd" stroke-width="1" fill="none"/>`).join('')}<path d="${state.landPath}" fill="#cdcdcd" stroke="#fff" stroke-width="1.1" stroke-linejoin="round"/>${markers}${placeMarkers}</svg><div class="map-badge">EQUAL EARTH / EPSG:8857</div><div class="map-zoom"><button type="button" data-action="zoom-in" aria-label="지도 확대">＋</button><button type="button" data-action="zoom-out" aria-label="지도 축소">－</button></div></div>`;
+ return `<div class="map-frame equal-map"><svg id="equal-svg" viewBox="${left} ${top} ${w} ${h}" role="img" aria-label="확대 축소 및 이동 가능한 이퀄 어스 세계 지도" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="900" height="450" fill="#f6f6f6"/>${gridPaths.map(d=>`<path d="${d}" stroke="#dddddd" stroke-width="1" fill="none"/>`).join('')}<path d="${state.landPath}" fill="#cdcdcd" stroke="#fff" stroke-width="1.1" stroke-linejoin="round"/>${pins}</svg><div class="map-badge">EQUAL EARTH / EPSG:8857</div><div class="map-zoom"><button type="button" data-action="zoom-in" aria-label="지도 확대">＋</button><button type="button" data-action="zoom-out" aria-label="지도 축소">－</button></div></div>`;
 }
 function pinSummary(){
+ if(state.selectedGroup){const g=state.mapGroups?.[state.selectedGroup];if(g)return groupSummary(g);}
  if(state.selectedVenue){const v=state.places.find(x=>x.id===state.selectedVenue);if(v)return `<div class="spot-card venue-spot"><div class="spot-card-top"><span>${tt('식물 공간','BOTANICAL PLACE','植物スポット')}</span><button data-action="close-pin" aria-label="Close" type="button">✕</button></div>${placeCoverMarkup(v.photo_paths?.[0],'venue-pop-photo')}<strong>${esc(v.name)}</strong><p class="mini-muted">${esc(v.locality||'')} · ${esc(placeKind(v.kind))}</p><p>${esc((v.description||'').slice(0,130))}</p><p class="mini-muted">${tt('보유 식물','Plants','保有植物')} · ${state.placePlants.filter(x=>x.place_id===v.id).length}</p><button class="light-button wide" type="button" data-action="place-detail" data-place-id="${esc(v.id)}">${tt('장소 및 보유 식물 보기','PLACE & PLANT LIST','場所・植物リスト')} →</button></div>`;}
 
  const records=mapRecords();let selected=records.find(r=>r.id===state.selectedMap);
  if(!selected||!publicPoint(selected))return '<p class="mini-muted">지도에서 식물 스팟이나 식물 공간을 선택해 보세요.</p>';
- return `<div class="spot-card"><div class="spot-card-top"><span>OBSERVATION PREVIEW ${selected.isDemo?'· DEMO':''}</span><button type="button" data-action="close-pin" aria-label="팝업 닫기">✕</button></div><div class="spot-row">${artwork(selected)}<div><em>${esc(selected.scientificName||'미동정 식물')}</em><div class="mini-muted">${esc(selected.family||'과명 미상')}</div><p>${esc([selected.locality,selected.country].filter(Boolean).join(' · ')||'위치 비공개')}</p><small>${selected.elevation==null?'고도 미기록':esc(selected.elevation)+' m'} · ${esc(STATUS[selected.identificationStatus]||'미동정')}</small></div></div><button type="button" class="light-button wide" data-detail="${esc(selected.id)}">관찰 기록 자세히 보기 →</button></div>`;
+ return `<div class="spot-card"><div class="spot-card-top"><span>OBSERVATION PREVIEW ${selected.isDemo?'· DEMO':''}</span><button type="button" data-action="close-pin" aria-label="팝업 닫기">✕</button></div><div class="spot-row">${artwork(selected)}<div><em>${esc(selected.scientificName||'미동정 식물')}</em><div class="mini-muted">${esc(selected.family||'과명 미상')}</div><p>${esc(locationLine(selected))}</p><small>${selected.elevation==null?'고도 미기록':esc(selected.elevation)+' m'} · ${esc(STATUS[selected.identificationStatus]||'미동정')}</small></div></div><button type="button" class="light-button wide" data-detail="${esc(selected.id)}">관찰 기록 자세히 보기 →</button></div>`;
 }
 
 function mapRecords(){
@@ -92,7 +84,7 @@ function mapRecords(){
 function mapSearchUi(){return `<div class="map-search-row"><input class="search" id="search" placeholder="학명 · 국가 · 지역 검색" value="${esc(state.search)}" aria-label="식물 검색"/><button class="light-button" type="button" data-action="map-filter-mine">${state.onlyMine?'내 기록 ✓':'내 기록만'}</button></div>`}
 function mapScreen(){
  if(state.fullMap)return `<section class="fullscreen-map-page"><div class="fullscreen-toolbar"><button class="light-button" type="button" data-action="collapse-map">← 닫기</button><span>${esc(MAP_NAMES[state.projection])}</span><button class="light-button" type="button" data-nav="options">설정</button></div>${mapSearchUi()}<div class="fullscreen-map-content">${mapMarkup()}</div><div id="map-pin-popup" class="map-pin-popup hidden">${pinSummary()}</div></section>`;
- return `<section class="page"><div class="eyebrow">GLOBAL BOTANICAL OBSERVATIONS</div><h1 class="title-img"><img src="./assets/titles/title-field-map.png" alt="FIELD MAP" class="t-field-map" width="820" height="89"/></h1><p class="lead">${tt('학명과 지역, 식물 공간을 검색해 보세요.','Search by scientific name, region or botanical place.','学名・地域・植物スポットで検索できます。')}</p>${mapSearchUi()}<div class="section-heading"><h2>${esc(MAP_NAMES[state.projection])}</h2><button type="button" class="text-button" data-action="expand-map">전체 화면 ↗</button></div><div class="map-inline-shell">${mapMarkup()}<button class="map-expand" data-action="expand-map" type="button">⛶ 전체 화면</button></div><p class="map-help">지도를 누르면 전체 화면으로 전환됩니다. 이퀄 어스를 깊게 확대하면 상세 지도 도법으로 전환됩니다.</p><div class="map-help">식물 스팟은 두 지도에서 확대해도 유지됩니다. 위치 비공개 기록은 지도에 표시되지 않습니다.</div><div id="map-pin-popup" class="map-pin-popup hidden">${pinSummary()}</div><div class="section-heading"><h2>OBSERVATIONS</h2><span>${mapRecords().length} RECORDS</span></div>${mapRecords().map(recordCard).join('')||'<div class="empty">검색된 관찰 기록이 없습니다.</div>'}</section>`;
+ return `<section class="page"><div class="eyebrow">GLOBAL BOTANICAL OBSERVATIONS</div><h1 class="title-img"><img src="./assets/titles/title-field-map.png" alt="FIELD MAP" class="t-field-map" width="820" height="89"/></h1><p class="lead">${tt('학명, 지역, 그리고 식물을 위한 공간을 검색해 보세요.','Search by scientific name, region, or places for plants.','学名、地域、そして植物のための場所を検索してみましょう。')}</p>${mapSearchUi()}<div class="section-heading"><h2>${esc(MAP_NAMES[state.projection])}</h2><button type="button" class="text-button" data-action="expand-map">전체 화면 ↗</button></div><div class="map-inline-shell">${mapMarkup()}<button class="map-expand" data-action="expand-map" type="button">⛶ 전체 화면</button></div><p class="map-help">지도를 누르면 전체 화면으로 전환됩니다. 이퀄 어스를 깊게 확대하면 상세 지도 도법으로 전환됩니다.</p><div class="map-help">식물 스팟은 두 지도에서 확대해도 유지됩니다. 위치 비공개 기록은 지도에 표시되지 않습니다.</div><div id="map-pin-popup" class="map-pin-popup hidden">${pinSummary()}</div><div class="section-heading"><h2>OBSERVATIONS</h2><span>${mapRecords().length} RECORDS</span></div>${mapRecords().map(recordCard).join('')||'<div class="empty">검색된 관찰 기록이 없습니다.</div>'}</section>`;
 }
 
 function filteredPlaces(){const q=state.search.trim().toLocaleLowerCase();return state.places.filter(v=>(!state.onlyMine||v.owner_id===state.user?.id)&&[v.name,v.locality,v.country,v.address,v.description,v.plants,placeKind(v.kind),...state.placePlants.filter(x=>x.place_id===v.id).map(x=>x.scientific_name)].join(' ').toLocaleLowerCase().includes(q));}
@@ -217,7 +209,7 @@ function editPlace(id){
 async function deletePlace(id){
  if(!requireCommunity())return;const p=state.places.find(x=>x.id===id);
  if(!p||p.owner_id!==state.user.id||!confirm(tt('공개 장소와 등록된 보유 식물을 모두 삭제할까요?','Delete this venue and all of its listed plants?','この場所と登録した植物をすべて削除しますか？')))return;
- const photos=[...state.placePlants.filter(x=>x.place_id===id&&x.photo_path).map(x=>x.photo_path),...(p.photo_paths||[])];
+ const photos=[...state.placePlants.filter(x=>x.place_id===id).flatMap(placePlantPhotos),...(p.photo_paths||[])];
  const {error}=await state.authClient.from('botanical_places').delete().eq('id',id).eq('owner_id',state.user.id);if(error)return toast(error.message);
  if(photos.length)await state.authClient.storage.from('place-photos').remove(photos).catch(console.warn);
  state.editingVenueId=null;closeDetail();await loadCommunity();render();
@@ -231,8 +223,8 @@ function rangeText(a,b,unit){
  return has(a)?`${a}${unit} ${tt('이상','or above','以上')}`:`${b}${unit} ${tt('이하','or below','以下')}`;
 }
 function placePlantCard(x,mine){
- const src=cachedPlacePhoto(x.photo_path);
- return `<article class="place-plant-card"><div class="pp-photo" data-pp-photo="${esc(x.photo_path||'')}">${src?`<img src="${esc(src)}" alt="${esc(x.scientific_name)}" loading="lazy"/>`:botanicalSvg}</div><div class="pp-info"><span class="tiny-tag pp-status ${esc(x.status)}">${esc(PP_STATUS()[x.status]||x.status)}</span>${x.identification_status==='verified'?` <span class="tiny-tag id-tag">✓ ${tt('동정 완료','Identified','同定済み')}</span>`:''}<em>${esc(x.scientific_name)}</em>${x.origin?`<p class="pp-origin"><span>${tt('원산지·자생지','Origin / habitat','原産地・自生地')}</span> ${esc(x.origin)}</p>`:''}<div class="pp-metrics"><span>${tt('적정 온도','Temp.','適温')} ${esc(rangeText(x.temp_min,x.temp_max,'°C'))}</span><span>${tt('적정 습도','Humidity','適正湿度')} ${esc(rangeText(x.humidity_min,x.humidity_max,'%'))}</span></div>${x.notes?`<p class="pp-note">${esc(x.notes)}</p>`:''}${mine?`<div class="small-actions"><button class="light-button" type="button" data-action="pp-edit" data-plant-id="${esc(x.id)}">${tt('수정','EDIT','編集')}</button><button class="light-button" type="button" data-action="pp-delete" data-plant-id="${esc(x.id)}">${tt('삭제','DELETE','削除')}</button></div>`:''}</div></article>`;
+ const cover=placePlantPhotos(x)[0]||null,src=cachedPlacePhoto(cover),n=placePlantPhotos(x).length;
+ return `<article class="place-plant-card"><button type="button" class="pp-photo" data-action="pp-view" data-plant-id="${esc(x.id)}" aria-label="${esc(tt('식물 자세히 보기','Open plant','植物の詳細'))}"><span class="pp-photo-img" data-pp-photo="${esc(cover||'')}" ${!src&&cover?`data-sign-bucket="place-photos" data-sign-path="${esc(cover)}"`:''}>${src?`<img src="${esc(src)}" alt="${esc(x.scientific_name)}" loading="lazy"/>`:botanicalSvg}</span>${n>1?`<span class="photo-count">⧉ ${n}</span>`:''}</button><div class="pp-info"><span class="tiny-tag pp-status ${esc(x.status)}">${esc(PP_STATUS()[x.status]||x.status)}</span>${x.identification_status==='verified'?` <span class="tiny-tag id-tag">✓ ${tt('동정 완료','Identified','同定済み')}</span>`:''}<em>${esc(x.scientific_name)}</em>${x.origin?`<p class="pp-origin"><span>${tt('원산지·자생지','Origin / habitat','原産地・自生地')}</span> ${esc(x.origin)}</p>`:''}<div class="pp-metrics"><span>${tt('적정 온도','Temp.','適温')} ${esc(rangeText(x.temp_min,x.temp_max,'°C'))}</span><span>${tt('적정 습도','Humidity','適正湿度')} ${esc(rangeText(x.humidity_min,x.humidity_max,'%'))}</span></div>${x.notes?`<p class="pp-note">${esc(x.notes)}</p>`:''}${mine?`<div class="small-actions"><button class="light-button" type="button" data-action="pp-edit" data-plant-id="${esc(x.id)}">${tt('수정','EDIT','編集')}</button><button class="light-button" type="button" data-action="pp-delete" data-plant-id="${esc(x.id)}">${tt('삭제','DELETE','削除')}</button></div>`:''}</div></article>`;
 }
 function placeDetail(id){
  const p=state.places.find(x=>x.id===id);if(!p)return;state.openPlaceId=id;teardownDexMap();
@@ -246,7 +238,7 @@ function placeDetail(id){
  <div class="detail-section"><h2>${tt('보유 식물','AVAILABLE PLANTS','取扱植物')} · ${plants.length}</h2>${mine?`<button type="button" class="primary-button wide" data-action="pp-add" data-place-id="${esc(id)}" style="margin-top:14px">＋ ${tt('보유 식물 등록','ADD A PLANT','植物を追加')}</button>`:''}${plants.length?`<div class="place-plant-list">${plants.map(x=>placePlantCard(x,mine)).join('')}</div>`:`<p class="mini-muted" style="margin-top:12px">${state.beta07Missing?SQL07_NOTICE():tt('등록된 식물이 없습니다.','No plants listed.','登録された植物はありません。')}</p>`}${legacy.length?`<h3 class="legacy-title">${tt('이전 방식으로 등록된 목록','EARLIER PLANT LIST','以前の植物リスト')}</h3><ul class="venue-plant-list">${legacy.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}</div>
  ${mine?`<button type="button" class="light-button wide" data-action="place-edit" data-place-id="${esc(id)}">${tt('내 장소 수정','EDIT PLACE','場所を編集')}</button>`:''}</div>`;
  overlay.classList.remove('hidden');overlay.setAttribute('aria-hidden','false');overlay.scrollTop=0;translateUI(overlay);hydrateSigned(overlay).catch(console.warn);
- signPlacePhotos(plants.map(x=>x.photo_path)).then(changed=>{
+ signPlacePhotos(plants.map(x=>placePlantPhotos(x)[0])).then(changed=>{
   if(!changed||state.openPlaceId!==id||overlay.classList.contains('hidden'))return;
   for(const el of overlay.querySelectorAll('[data-pp-photo]')){const src=cachedPlacePhoto(el.dataset.ppPhoto);if(src&&!el.querySelector('img')){const img=new Image();img.alt='';img.loading='lazy';img.src=src;el.replaceChildren(img);}}
  }).catch(console.warn);
@@ -257,11 +249,10 @@ function placePlantForm(placeId,plantId=null){
  if(state.beta07Missing)return toast(SQL07_NOTICE());
  const pp=plantId?state.placePlants.find(x=>x.id===plantId):null,src=cachedPlacePhoto(pp?.photo_path);
  const val=k=>`value="${esc(pp?.[k]??'')}"`,sel=s=>(pp?.status||'available')===s?'selected':'';
- state.placePlantPhoto=null;state.openPlaceId=placeId;
+ state.placePlantPhoto=null;state.openPlaceId=placeId;state.ppPhotos=placePlantPhotos(pp);
  overlay.innerHTML=`<div class="detail-body"><div class="detail-header"><span class="eyebrow">${pp?'EDIT PLANT':'ADD PLANT'} / ${esc(place.name)}</span><button type="button" class="close" data-action="place-detail" data-place-id="${esc(placeId)}">← ${tt('돌아가기','BACK','戻る')}</button></div><h1>${pp?tt('보유 식물 수정','Edit plant','植物を編集'):tt('보유 식물 등록','Add a plant','植物を追加')}</h1><p class="lead">${tt('분양에 필요한 핵심 정보만 기록하세요.','Record only the essentials buyers need.','分譲に必要な基本情報だけを記録しましょう。')}</p>
- <form id="place-plant-form" autocomplete="off"><input type="hidden" name="placeId" value="${esc(placeId)}"/><input type="hidden" name="plantId" value="${esc(pp?.id||'')}"/>
- <div class="form-section"><h2>01 / PHOTOGRAPH</h2><div id="pp-photo-box" class="photo-box" role="button" tabindex="0" aria-label="${esc(tt('식물 사진 추가','Add plant photo','植物の写真を追加'))}">${src?`<img alt="" src="${esc(src)}"/>`:`<span class="photo-add-icon" aria-hidden="true">＋</span><strong>${tt('식물 사진 추가','Add plant photo','植物の写真を追加')}</strong><span>${tt('사진을 선택하거나 촬영하세요.','Choose or take a photo.','写真を選択または撮影してください。')}</span>`}</div><div class="small-actions" style="margin-top:11px"><button type="button" class="light-button" data-action="pp-gallery">▧ ${tt('앨범에서 선택','Choose from library','アルバムから選択')}</button><button type="button" class="light-button" data-action="pp-camera">◉ ${tt('사진 촬영','Take photo','撮影')}</button></div><input id="pp-gallery-input" class="hidden-input" type="file" accept="image/*"/><input id="pp-camera-input" class="hidden-input" type="file" accept="image/*" capture="environment"/><p class="footnote photo-ratio-note">${tt('사진은 가로 4:3 비율로, 가운데를 기준으로 자동으로 잘려 저장됩니다.','Photos are automatically center-cropped to a 4:3 landscape ratio.','写真は横4:3の比率で、中央を基準に自動で切り取られます。')}</p></div>
- <div class="form-section"><h2>02 / PLANT</h2><label class="form-field"><span>${tt('학명 / Scientific name','Scientific name','学名')} *</span><input name="scientificName" required maxlength="120" placeholder="Begonia sp." ${val('scientific_name')}/></label>${state.beta08Missing?'':`<label class="form-field"><span>${tt('동정 상태','Identification','同定状況')}</span><select name="identificationStatus"><option value="unidentified" ${pp?.identification_status!=='verified'?'selected':''}>${tt('미동정','Unidentified','未同定')}</option><option value="verified" ${pp?.identification_status==='verified'?'selected':''}>${tt('동정 완료','Identified','同定済み')}</option></select></label>`}<label class="form-field"><span>${tt('원산지 · 자생지','Origin / native habitat','原産地・自生地')}</span><input name="origin" maxlength="200" placeholder="${esc(tt('예: 말레이시아 보르네오 · 저지대 열대우림 계곡','e.g. Borneo, Malaysia · lowland rainforest streams','例：マレーシア・ボルネオ 低地熱帯雨林の渓流'))}" ${val('origin')}/></label><label class="form-field"><span>${tt('분양 상태','Availability','分譲状況')}</span><select name="status"><option value="available" ${sel('available')}>${PP_STATUS().available}</option><option value="reserved" ${sel('reserved')}>${PP_STATUS().reserved}</option><option value="display" ${sel('display')}>${PP_STATUS().display}</option></select></label></div>
+ <form id="place-plant-form" autocomplete="off"><input type="hidden" name="plantId" value="${esc(pp?.id||'')}"/>
+ ${ppPhotoSection()}<div class="form-section"><h2>02 / PLANT</h2>${ppPlaceField(placeId)}<label class="form-field"><span>${tt('학명 / Scientific name','Scientific name','学名')} *</span><input name="scientificName" required maxlength="120" placeholder="Begonia sp." ${val('scientific_name')}/></label>${state.beta08Missing?'':`<label class="form-field"><span>${tt('동정 상태','Identification','同定状況')}</span><select name="identificationStatus"><option value="unidentified" ${pp?.identification_status!=='verified'?'selected':''}>${tt('미동정','Unidentified','未同定')}</option><option value="verified" ${pp?.identification_status==='verified'?'selected':''}>${tt('동정 완료','Identified','同定済み')}</option></select></label>`}<label class="form-field"><span>${tt('원산지 · 자생지','Origin / native habitat','原産地・自生地')}</span><input name="origin" maxlength="200" placeholder="${esc(tt('예: 말레이시아 보르네오 · 저지대 열대우림 계곡','e.g. Borneo, Malaysia · lowland rainforest streams','例：マレーシア・ボルネオ 低地熱帯雨林の渓流'))}" ${val('origin')}/></label><label class="form-field"><span>${tt('분양 상태','Availability','分譲状況')}</span><select name="status"><option value="available" ${sel('available')}>${PP_STATUS().available}</option><option value="reserved" ${sel('reserved')}>${PP_STATUS().reserved}</option><option value="display" ${sel('display')}>${PP_STATUS().display}</option></select></label></div>
  <div class="form-section"><h2>03 / CARE</h2><div class="form-field"><span>${tt('적정 온도 (°C)','Temperature (°C)','適温（°C）')}</span><div class="range-row"><input name="tempMin" type="number" inputmode="decimal" step="0.5" min="-20" max="60" placeholder="${esc(tt('최저 18','min 18','最低 18'))}" ${val('temp_min')}/><span>–</span><input name="tempMax" type="number" inputmode="decimal" step="0.5" min="-20" max="60" placeholder="${esc(tt('최고 28','max 28','最高 28'))}" ${val('temp_max')}/></div></div><div class="form-field"><span>${tt('적정 습도 (%)','Humidity (%)','適正湿度（%）')}</span><div class="range-row"><input name="humidityMin" type="number" inputmode="numeric" step="1" min="0" max="100" placeholder="${esc(tt('최저 60','min 60','最低 60'))}" ${val('humidity_min')}/><span>–</span><input name="humidityMax" type="number" inputmode="numeric" step="1" min="0" max="100" placeholder="${esc(tt('최고 90','max 90','最高 90'))}" ${val('humidity_max')}/></div></div><label class="form-field"><span>${tt('분양 메모 (선택)','Notes (optional)','メモ（任意）')}</span><textarea name="notes" maxlength="500" rows="3" placeholder="${esc(tt('개체 크기, 상태, 광량, 분양 방법 등','Size, condition, light, how to adopt, etc.','サイズ、状態、光量、分譲方法など'))}">${esc(pp?.notes||'')}</textarea></label></div>
  <button class="primary-button wide" type="submit" id="pp-save">${pp?tt('변경 사항 저장','SAVE CHANGES','変更を保存'):tt('보유 식물 등록','ADD PLANT','植物を登録')}</button>${pp?`<button type="button" class="light-button wide detail-delete" data-action="pp-delete" data-plant-id="${esc(pp.id)}">${tt('이 식물 삭제','DELETE THIS PLANT','この植物を削除')}</button>`:''}
  <p class="footnote" style="text-align:center">${tt('사진은 저장 전에 크기를 줄이고 EXIF 위치 정보를 제거합니다. 등록한 식물은 베타 멤버에게 공개됩니다.','Photos are resized and EXIF location data is removed. Listed plants are visible to beta members.','写真は縮小され、EXIFの位置情報は削除されます。登録した植物はベータメンバーに公開されます。')}</p></form></div>`;
@@ -287,18 +278,16 @@ async function savePlacePlant(form){
  const existing=get('plantId')?state.placePlants.find(x=>x.id===get('plantId')):null;
  const id=existing?.id||newUuid(),btn=$('#pp-save');if(btn)btn.disabled=true;
  try{
-  let photoPath=existing?.photo_path||null;
-  if(state.placePlantPhoto){
-   const blob=await (await fetch(state.placePlantPhoto)).blob();photoPath=`${state.user.id}/${id}.jpg`;
-   const {error:uploadError}=await state.authClient.storage.from('place-photos').upload(photoPath,blob,{contentType:'image/jpeg',upsert:true});if(uploadError)throw uploadError;
-   delete state.photoUrlCache[`place-photos/${photoPath}`];
-  }
-  const row={place_id:place.id,owner_id:state.user.id,scientific_name:name,origin:get('origin'),status:get('status')||'available',notes:get('notes'),temp_min:n.tempMin,temp_max:n.tempMax,humidity_min:n.humidityMin,humidity_max:n.humidityMax,photo_path:photoPath,updated_at:new Date().toISOString()};
+  const up=await uploadPlantPhotos(id,existing),photoPath=up.paths[0]||null;
+  const row={place_id:place.id,owner_id:state.user.id,scientific_name:name,origin:get('origin'),status:get('status')||'available',notes:get('notes'),temp_min:n.tempMin,temp_max:n.tempMax,humidity_min:n.humidityMin,humidity_max:n.humidityMax,photo_path:photoPath,photo_paths:up.paths,updated_at:new Date().toISOString()};
   if(!state.beta08Missing&&form.elements.identificationStatus)row.identification_status=get('identificationStatus')==='verified'?'verified':'unidentified';
   const table=state.authClient.from('place_plants');
-  const {error}=existing?await table.update(row).eq('id',id).eq('owner_id',state.user.id):await table.insert({id,...row});
-  if(error)throw error;
-  state.placePlantPhoto=null;await loadCommunity();refreshAfterPlantChange();placeDetail(place.id);
+  const write=r=>existing?table.update(r).eq('id',id).eq('owner_id',state.user.id):table.insert({id,...r});
+  let {error}=await write(row);
+  if(error&&/photo_paths/i.test(error.message||'')){const {photo_paths,...legacy}=row;({error}=await write(legacy));}
+  if(error){if(up.uploaded.length)await state.authClient.storage.from('place-photos').remove(up.uploaded).catch(()=>{});throw error;}
+  if(up.stale.length)await state.authClient.storage.from('place-photos').remove(up.stale).catch(console.warn);
+  state.placePlantPhoto=null;state.ppPhotos=[];await loadCommunity();refreshAfterPlantChange();placeDetail(place.id);
   toast(existing?tt('보유 식물 정보를 저장했습니다.','Plant updated.','植物を更新しました。'):tt('보유 식물을 등록했습니다.','Plant added.','植物を登録しました。'));
  }catch(e){toast(isBeta07SchemaError(e)?SQL07_NOTICE():(e.message||String(e)));}
  finally{if(btn&&document.body.contains(btn))btn.disabled=false;}
@@ -307,7 +296,7 @@ async function deletePlacePlant(id){
  if(!requireCommunity())return;const pp=state.placePlants.find(x=>x.id===id);
  if(!pp||pp.owner_id!==state.user.id||!confirm(tt('이 보유 식물을 삭제할까요?','Delete this plant listing?','この植物を削除しますか？')))return;
  const {error}=await state.authClient.from('place_plants').delete().eq('id',id).eq('owner_id',state.user.id);if(error)return toast(error.message);
- if(pp.photo_path)await state.authClient.storage.from('place-photos').remove([pp.photo_path]).catch(console.warn);
+ {const paths=placePlantPhotos(pp);if(paths.length)await state.authClient.storage.from('place-photos').remove(paths).catch(console.warn);}
  await loadCommunity();refreshAfterPlantChange();placeDetail(pp.place_id);
  toast(tt('보유 식물을 삭제했습니다.','Plant deleted.','植物を削除しました。'));
 }
@@ -322,7 +311,7 @@ function socialButtons(record){
 function feedCard(record){const src=photoSource(record);return `<article class="feed-card"><button type="button" class="feed-photo" data-detail="${esc(record.id)}" aria-label="${tt('식물 상세 보기','Open observation','観察記録を開く')}">${src?`<img src="${esc(src)}" alt="${esc(record.scientificName)}" loading="lazy"/>`:botanicalSvg}${recordPlantPhotos(record).length+recordHabitatPhotos(record).length>1?`<span class="photo-count">⧉ ${recordPlantPhotos(record).length+recordHabitatPhotos(record).length}</span>`:''}</button><div class="feed-info"><div class="eyebrow">${esc([record.country,record.locality].filter(Boolean).join(' · ')||'FIELD RECORD')}</div>${record.ownerId?authorChip(record.ownerId):''}<button class="feed-name" type="button" data-detail="${esc(record.id)}">${esc(record.scientificName||'Unidentified plant')}</button><p>${esc((record.notes||'').slice(0,135))}</p>${socialButtons(record)}</div></article>`;}
 function homeScreen(){
  const all=state.sharedRecords.filter(r=>!r.isDemo&&!r.hidden),sorted=[...all].sort((a,b)=>state.feedSort==='recent'?new Date(b.observedAt)-new Date(a.observedAt):likeCount(b.id)-likeCount(a.id)||new Date(b.observedAt)-new Date(a.observedAt));
- return `<section class="page"><div class="home-intro compact-home"><span class="eyebrow">PLANT MATTER / RAINFOREST MEMORIES</span><h1 class="title-img"><img src="./assets/titles/title-home.png" alt="RAINFOREST MEMORIES" class="t-home" width="970" height="242"/></h1><p class="lead">${tt('식물과 발견의 순간을 공유하는 공간.','A place to share plants and moments of discovery.','植物と発見の瞬間を共有する場所。')}</p></div>
+ return `<section class="page"><div class="home-intro compact-home"><span class="eyebrow">PLANT MATTER / RAINFOREST MEMORIES</span><h1 class="title-img"><img src="./assets/titles/title-home.png" alt="RAINFOREST MEMORIES" class="t-home" width="970" height="242"/></h1><p class="lead">${tt('열대의 기록, 일상에서 식물을 마주한 순간.','Records of the tropics — moments of meeting plants in everyday life.','熱帯の記録、日常の中で植物と出会った瞬間。')}</p></div>
  ${rankingSection()}
  <div class="section-heading"><h2>${tt('기록된 식물','RECORDED PLANTS','記録された植物')}</h2><button class="text-button" type="button" data-nav="map">${tt('지도 보기','EXPLORE MAP','地図を見る')} ↗</button></div>
  <div class="feed-filter"><button class="pill ${state.feedSort==='popular'?'active':''}" data-action="feed-popular">${tt('좋아요 순','MOST LIKED','いいね順')}</button><button class="pill ${state.feedSort==='recent'?'active':''}" data-action="feed-recent">${tt('최신순','RECENT','新着順')}</button></div>
@@ -341,16 +330,13 @@ function mountMap(){
  const zoom=saved?saved.zoom:(isDetail?12:2);
  const m=window.L.map(target,{zoomControl:false,worldCopyJump:false,attributionControl:true,maxZoom:19,minZoom:2,maxBounds:[[-85,-180],[85,180]],maxBoundsViscosity:1}).setView([focus.latitude,focus.longitude],zoom);
  window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,noWrap:true,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>'}).addTo(m);
- for(const r of mapRecords()){
-  const p=publicPoint(r);if(!p)continue;
-  const marker=window.L.circleMarker([p.latitude,p.longitude],{radius:7,color:'#fff',weight:2,fillColor:r.isDemo?'#888':'#222',fillOpacity:1}).addTo(m);
-  marker.bindTooltip(`${r.isDemo?'[DEMO] ':''}${esc(r.scientificName||'미동정 식물')}`);
+ for(const g of mapPinGroups()){
+  if(g.items.length>1){const places=g.items.every(it=>it.type==='place'),mk=window.L.marker([g.latitude,g.longitude],{icon:window.L.divIcon({className:`group-marker${places?' places':''}`,html:`<span>${g.items.length>99?'99+':g.items.length}</span>`,iconSize:[30,30],iconAnchor:[15,15]})}).addTo(m);mk.on('click',e=>{window.L.DomEvent.stopPropagation(e.originalEvent);selectGroup(g.key);});continue;}
+  const it=g.items[0];
+  if(it.type==='place'){const v=it.v,pin=window.L.circleMarker([v.latitude,v.longitude],{radius:9,color:'#fff',weight:2,fillColor:'#2f7158',fillOpacity:1}).addTo(m);pin.bindTooltip(`${esc(v.name)} · ${esc(placeKind(v.kind))}`);pin.on('click',e=>{window.L.DomEvent.stopPropagation(e.originalEvent);selectVenue(v.id);});continue;}
+  const r=it.r,marker=window.L.circleMarker([g.latitude,g.longitude],{radius:7,color:'#fff',weight:2,fillColor:'#222',fillOpacity:1}).addTo(m);
+  marker.bindTooltip(esc(r.scientificName||'미동정 식물'));
   marker.on('click',e=>{window.L.DomEvent.stopPropagation(e.originalEvent);if(state.tab==='home'){state.tab='map';state.fullMap=true;render();}selectSpot(r.id);});
- }
- for(const v of filteredPlaces()){
-  const pin=window.L.circleMarker([v.latitude,v.longitude],{radius:9,color:'#fff',weight:2,fillColor:'#2f7158',fillOpacity:1}).addTo(m);
-  pin.bindTooltip(`${esc(v.name)} · ${esc(placeKind(v.kind))}`);
-  pin.on('click',e=>{window.L.DomEvent.stopPropagation(e.originalEvent);selectVenue(v.id);});
  }
  window.L.control.zoom({position:'topright'}).addTo(m);// top-left is covered by the projection badge
  state.leaflet=m;safeResize(m);
@@ -388,8 +374,8 @@ function libraryScreen(){return `<section class="page"><div class="eyebrow">FIEL
 function fieldInput(name,label,placeholder='',type='text',extra=''){return `<label class="form-field"><span>${label}</span><input name="${name}" type="${type}" placeholder="${esc(placeholder)}" ${extra}/></label>`;}
 function fieldSelect(name,label,options){return `<label class="form-field"><span>${label}</span><select name="${name}">${options.map(([val,label],i)=>`<option value="${esc(val)}" ${i===0?'selected':''}>${esc(label)}</option>`).join('')}</select></label>`;}
 function formScreen(){
- const editing=state.editingId && getRecord(state.editingId);
- return `<section class="page"><div class="eyebrow">${editing?'EDIT FIELD OBSERVATION':'NEW FIELD OBSERVATION'}</div>${editing?'<h1>관찰 기록 수정</h1>':'<h1 class="title-img"><picture><source media="(min-width: 520px)" srcset="./assets/titles/title-new-record.png"/><img src="./assets/titles/title-new-record-2line.png" alt="NEW PLANT RECORD" class="t-new-record" width="898" height="240"/></picture></h1>'}<p class="lead">${editing?'이미 등록한 기록의 사진·학명·위치·환경 데이터를 언제든 수정할 수 있습니다. 기존 기록 ID와 동정 의견은 유지됩니다.':'사진과 서식 환경을 기록하세요. 입력 내용은 자동 임시 저장됩니다. 온라인 공유는 별도로 선택해요.'}</p><form id="observation-form" autocomplete="off"><p id="draft-status" class="draft-status">오프라인 기록 · 자동 임시 저장</p>${obsPhotoSection()}<div class="form-section"><h2>02 / TAXONOMY</h2>${fieldInput('scientificName','학명 / Scientific name','예: Ficus sp. (미동정 가능)')}${fieldInput('family','과명 / Family','예: Moraceae')}${fieldSelect('identificationStatus','동정 상태',[['unidentified','미동정'],['proposed','동정 제안'],['review','검토 중'],['verified','동정 완료']])}</div>${observedSection()}<div class="form-section"><h2>04 / LOCATION</h2>${locationPickerMarkup()}<div class="two-col">${fieldInput('country','국가','Malaysia')}${fieldInput('locality','발견 지명','Fraser’s Hill')}</div>${fieldInput('elevation','해발 고도 (m)',tt('GPS 사용 시 자동 입력','Filled automatically from GPS','GPS使用時に自動入力'),'number','step="any"')}<div class="privacy-group"><div class="privacy-group-title">위치 공개 수준</div><label class="privacy-option"><input type="radio" name="privacy" value="private" checked/><span><b>정확한 위치 비공개 — 권장</b><small>관찰 기록에만 정확한 좌표 저장, 지도 핀 없음</small></span></label><label class="privacy-option"><input type="radio" name="privacy" value="coarse"/><span><b>대략적인 지역</b><small>1° 격자 중심으로 위치 일반화 (민감 서식지에는 주의)</small></span></label><label class="privacy-option"><input type="radio" name="privacy" value="public"/><span><b>정확한 위치 표시</b><small>공유 동의 시 그룹 지도에 정확한 좌표 표시</small></span></label></div></div><div class="form-section"><h2>05 / FIELD NOTES</h2><label class="form-field"><span>탐사 프로젝트 / Expedition</span><select name="projectId"><option value="">프로젝트 없이 기록</option>${state.projects.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select></label>${fieldSelect('habit','생육 형태',[['지생','지생'],['착생','착생'],['암생','암생'],['포복','포복'],['덩굴','덩굴'],['관목','관목'],['교목','교목'],['수생','수생'],['기타','기타']])}${fieldSelect('phenology','생육 상태',[['영양생장','영양생장'],['개화','개화'],['결실','결실'],['포자 형성','포자 형성'],['휴면','휴면']])}${fieldInput('habitat','서식지 유형','운무림 / 산지 열대우림')}${fieldInput('substrate','기질 / Substrate','이끼, 암면, 낙엽층 등')}<label class="form-field"><span>현장 메모</span><textarea name="notes" placeholder="잎·줄기·꽃의 특징, 동반 식생, 환경 등"></textarea></label></div><button type="button" class="advanced-toggle" data-action="advanced">＋ 전문 환경 측정 및 표본 기록 펼치기</button><div id="advanced-fields" class="advanced"><div class="form-section"><h2>06 / ENVIRONMENTAL MEASUREMENTS</h2><div class="two-col">${fieldInput('lux','조도 (lx)','850','number','step="any"')}${fieldInput('ppfd','PPFD (µmol/m²/s)','25','number','step="any"')}</div><div class="two-col">${fieldInput('temperature','기온 (°C)','23.5','number','step="any"')}${fieldInput('humidity','상대습도 (%)','88','number','step="any" min="0" max="100"')}</div>${fieldSelect('measurementSource','측정 근거',[['not-recorded','미기록'],['instrument','계측 장비를 사용한 실측'],['estimated','추정값 또는 외부 자료'],['unspecified','출처 미지정']])}${fieldInput('measurementDevice','측정 장비','조도계 모델 / 측정 높이')}${fieldInput('measuredAt','측정 시각','','datetime-local')}</div><div class="form-section"><h2>07 / COLLECTION & RESEARCH</h2>${fieldInput('fieldNumber','필드 번호 / Field number','PMF-001')}${fieldInput('collector','관찰자 / Observer','')}${fieldInput('population','개체군 / Abundance','작은 군락 형태')}${fieldInput('associatedSpecies','동반 식생 / Associated species','')}${fieldInput('voucher','표본·바우처 / Voucher','표본 미채집 / 기관·번호')}</div></div><div class="info warning" style="margin:18px 0">야생 희귀식물의 정확한 GPS는 공유하지 마세요. 사진은 저장하기 전에 크기를 줄이고 EXIF 메타데이터를 제거합니다.</div><button class="primary-button wide" type="submit" id="save-button">${editing?'변경 사항 저장하기':'관찰 기록 저장하기'}</button>${editing?'<button class="light-button wide cancel-edit" type="button" data-action="cancel-edit">수정 취소</button>':''}<p class="footnote" style="text-align:center">현재는 내 아이폰의 브라우저 저장소에만 보관됩니다. 초안은 자동 저장됩니다. 중요 데이터는 JSON으로 백업해 주세요.</p></form></section>`;
+ const editing=state.editingId && editableRecord(state.editingId);
+ return `<section class="page"><div class="eyebrow">${editing?'EDIT FIELD OBSERVATION':'NEW FIELD OBSERVATION'}</div>${editing?'<h1>관찰 기록 수정</h1>':'<h1 class="title-img"><picture><source media="(min-width: 360px)" srcset="./assets/titles/title-new-record.png"/><img src="./assets/titles/title-new-record-2line.png" alt="NEW PLANT RECORD" class="t-new-record" width="898" height="240"/></picture></h1>'}<p class="lead">${editing?'이미 등록한 기록의 사진·학명·위치·환경 데이터를 언제든 수정할 수 있습니다. 기존 기록 ID와 동정 의견은 유지됩니다.':tt('사진과 서식 환경을 기록하세요. 입력 내용은 자동 임시 저장되고, 저장하면 온라인에도 자동으로 저장됩니다.','Record photos and habitat. Drafts save automatically, and saved records are stored online too.','写真と生育環境を記録しましょう。下書きは自動保存され、保存した記録はオンラインにも自動保存されます。')}</p><form id="observation-form" autocomplete="off"><p id="draft-status" class="draft-status">오프라인 기록 · 자동 임시 저장</p>${obsPhotoSection()}<div class="form-section"><h2>02 / TAXONOMY</h2>${fieldInput('scientificName','학명 / Scientific name','예: Ficus sp. (미동정 가능)')}${fieldInput('family','과명 / Family','예: Moraceae')}${fieldSelect('identificationStatus','동정 상태',[['unidentified','미동정'],['proposed','동정 제안'],['review','검토 중'],['verified','동정 완료']])}</div>${observedSection()}<div class="form-section"><h2>04 / LOCATION</h2>${locationPickerMarkup()}<div class="two-col">${fieldInput('country','국가','Malaysia')}${fieldInput('locality','발견 지명','Fraser’s Hill')}</div>${fieldInput('elevation','해발 고도 (m)',tt('GPS 사용 시 자동 입력','Filled automatically from GPS','GPS使用時に自動入力'),'number','step="any"')}<div class="privacy-group"><div class="privacy-group-title">위치 공개 수준</div><label class="privacy-option"><input type="radio" name="privacy" value="private" checked/><span><b>정확한 위치 비공개 — 권장</b><small>관찰 기록에만 정확한 좌표 저장, 지도 핀 없음</small></span></label><label class="privacy-option"><input type="radio" name="privacy" value="coarse"/><span><b>대략적인 지역</b><small>1° 격자 중심으로 위치 일반화 (민감 서식지에는 주의)</small></span></label><label class="privacy-option"><input type="radio" name="privacy" value="public"/><span><b>정확한 위치 표시</b><small>공유 동의 시 그룹 지도에 정확한 좌표 표시</small></span></label></div></div><div class="form-section"><h2>05 / FIELD NOTES</h2><label class="form-field"><span>탐사 프로젝트 / Expedition</span><select name="projectId"><option value="">프로젝트 없이 기록</option>${state.projects.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select></label>${fieldSelect('habit','생육 형태',[['지생','지생'],['착생','착생'],['암생','암생'],['포복','포복'],['덩굴','덩굴'],['관목','관목'],['교목','교목'],['수생','수생'],['기타','기타']])}${fieldSelect('phenology','생육 상태',[['영양생장','영양생장'],['개화','개화'],['결실','결실'],['포자 형성','포자 형성'],['휴면','휴면']])}${fieldInput('habitat','서식지 유형','운무림 / 산지 열대우림')}${fieldInput('substrate','기질 / Substrate','이끼, 암면, 낙엽층 등')}<label class="form-field"><span>현장 메모</span><textarea name="notes" placeholder="잎·줄기·꽃의 특징, 동반 식생, 환경 등"></textarea></label></div>${sharingSection(editing)}<button type="button" class="advanced-toggle" data-action="advanced">＋ 전문 환경 측정 및 표본 기록 펼치기</button><div id="advanced-fields" class="advanced"><div class="form-section"><h2>07 / ENVIRONMENTAL MEASUREMENTS</h2><div class="two-col">${fieldInput('lux','조도 (lx)','850','number','step="any"')}${fieldInput('ppfd','PPFD (µmol/m²/s)','25','number','step="any"')}</div><div class="two-col">${fieldInput('temperature','기온 (°C)','23.5','number','step="any"')}${fieldInput('humidity','상대습도 (%)','88','number','step="any" min="0" max="100"')}</div>${fieldSelect('measurementSource','측정 근거',[['not-recorded','미기록'],['instrument','계측 장비를 사용한 실측'],['estimated','추정값 또는 외부 자료'],['unspecified','출처 미지정']])}${fieldInput('measurementDevice','측정 장비','조도계 모델 / 측정 높이')}${fieldInput('measuredAt','측정 시각','','datetime-local')}</div><div class="form-section"><h2>08 / COLLECTION & RESEARCH</h2>${fieldInput('fieldNumber','필드 번호 / Field number','PMF-001')}${fieldInput('collector','관찰자 / Observer','')}${fieldInput('population','개체군 / Abundance','작은 군락 형태')}${fieldInput('associatedSpecies','동반 식생 / Associated species','')}${fieldInput('voucher','표본·바우처 / Voucher','표본 미채집 / 기관·번호')}</div></div><div class="info warning" style="margin:18px 0">야생 희귀식물의 정확한 GPS는 공유하지 마세요. 사진은 저장하기 전에 크기를 줄이고 EXIF 메타데이터를 제거합니다.</div><button class="primary-button wide" type="submit" id="save-button">${editing?'변경 사항 저장하기':'관찰 기록 저장하기'}</button>${editing?'<button class="light-button wide cancel-edit" type="button" data-action="cancel-edit">수정 취소</button>':''}<p class="footnote" style="text-align:center">${tt('기록은 이 기기에 먼저 저장되고, 승인된 멤버는 온라인에도 자동으로 저장됩니다. 초안은 자동 저장됩니다.','Records are saved on this device first and, for approved members, online too. Drafts save automatically.','記録はまず端末に保存され、承認済みメンバーはオンラインにも自動保存されます。下書きは自動保存されます。')}</p></form></section>`;
 }
 // EXPEDITION ROUTES: private local-first waypoints + optional foreground GPS trail.
 // Connecting points is a recorded itinerary, NOT a calculated road/trail route.
@@ -397,13 +383,6 @@ const routeStopsFor=p=>Array.isArray(p?.routeStops)?p.routeStops:[];
 const routeTrackFor=p=>Array.isArray(p?.routeTrack)?p.routeTrack:[];
 const routeCoords=s=>Number.isFinite(Number(s?.latitude))&&Number.isFinite(Number(s?.longitude))&&
  s.latitude!==''&&s.longitude!==''&&s.latitude!==null&&s.longitude!==null&&Math.abs(Number(s.latitude))<=90&&Math.abs(Number(s.longitude))<=180;
-function expeditionRouteScreen(){
- const p=state.projects.find(x=>x.id===state.activeExpeditionId);
- if(!p){state.activeExpeditionId=null;return fieldScreen();}
- const stops=routeStopsFor(p),track=routeTrackFor(p);
- const rows=stops.map((s,i)=>{const role=i===0?'출발지':i===stops.length-1?'목적지':'경유지';return `<div class="route-stop-row"><div class="route-stop-index">${String(i+1).padStart(2,'0')}</div><div class="route-stop-copy"><strong>${esc(s.name)}</strong><small>${role} · ${esc(s.arrivalDate||'날짜 미기록')}${s.departureDate?' ~ '+esc(s.departureDate):''}</small>${s.note?`<p>${esc(s.note)}</p>`:''}</div><div class="route-stop-actions"><button type="button" class="route-mini" data-action="route-move-up" data-index="${i}" aria-label="위로 이동" ${i===0?'disabled':''}>↑</button><button type="button" class="route-mini" data-action="route-move-down" data-index="${i}" aria-label="아래로 이동" ${i===stops.length-1?'disabled':''}>↓</button><button type="button" class="route-mini" data-action="route-edit" data-index="${i}">수정</button><button type="button" class="route-mini" data-action="route-delete" data-index="${i}">삭제</button></div></div>`;}).join('');
- return `<section class="page expedition-route-page"><div class="eyebrow">EXPEDITION / TRAVEL LOG</div><button class="text-button route-back" data-action="route-close" type="button">← PROFILE로 돌아가기</button><h1>${esc(p.name)}</h1><p class="lead">출발지, 경유지, 목적지를 순서대로 등록하면 지도에 경로선이 자동으로 연결돼요.</p><div class="route-map-wrapper"><div id="expedition-route-map" aria-label="탐사 이동 경로 지도"></div><div class="route-map-caption">지도 터치 → 아래 입력창에 GPS 좌표 입력 · 회색 점선: 지정한 방문 순서</div></div><div class="info">${tt('탐사 일정과 이동 좌표는 현재 기기에만 비공개로 저장돼요. 지도에서 이어지는 점선은 실제 도로·등산로 경로 탐색 결과가 아닌 방문 순서 연결선이에요.','Expedition schedules and coordinates are stored privately on this device only. The dashed line connects stops in visiting order; it is not a calculated road or trail route.','探査の日程と座標はこの端末にのみ非公開で保存されます。点線は訪問順を結んだ線で、実際の道路や登山道のルートではありません。')}</div><div class="section-heading"><h2>JOURNEY STOPS</h2><span>${stops.length} POINTS</span></div>${rows||'<p class="mini-muted">아직 등록한 이동 지점이 없어요. 아래에서 출발지를 추가해 주세요.</p>'}<form id="route-stop-form" class="project-form"><input type="hidden" name="stopId" value=""/><label class="form-field"><span>장소 이름 / 출발지·경유지·목적지</span><input name="name" required maxlength="90" placeholder="예: 쿠알라룸푸르 공항" /></label><div class="two-col"><label class="form-field"><span>도착 / 머문 시작 날짜</span><input name="arrivalDate" type="date" /></label><label class="form-field"><span>출발 / 머문 종료 날짜</span><input name="departureDate" type="date" /></label></div><div class="two-col"><label class="form-field"><span>위도</span><input name="latitude" type="number" step="any" min="-90" max="90" required placeholder="3.716"/></label><label class="form-field"><span>경도</span><input name="longitude" type="number" step="any" min="-180" max="180" required placeholder="101.737"/></label></div><div class="small-actions"><button class="light-button" type="button" data-action="route-gps">◎ 현재 위치</button><button class="light-button" type="button" data-action="route-clear-form">새 지점 입력</button></div><label class="form-field" style="margin-top:14px"><span>현장 메모 / 이동 수단</span><textarea name="note" maxlength="1000" placeholder="예: 도보 이동, 현장에서 2일 체류"></textarea></label><button type="submit" class="primary-button wide" id="route-save-btn">＋ 지점 저장 및 경로 연결</button></form><div class="section-heading"><h2>ACTUAL GPS TRACK</h2><span>FOREGROUND ONLY</span></div><p class="mini-muted">탐사 중 앱 화면을 켜둔 상태에서 실제 GPS 이동 궤적을 기록할 수 있어요. 다른 앱으로 이동하거나 화면이 꺼지면 iPhone PWA에서 지속 기록이 보장되지 않아요.</p><div class="small-actions"><button class="light-button" type="button" data-action="route-track-start" ${state.routeTrackingId!==null?'disabled':''}>● GPS 기록 시작</button><button class="light-button" type="button" data-action="route-track-stop" ${state.routeTrackingId===null?'disabled':''}>■ 기록 종료</button></div><p class="draft-status">${state.routeTrackingId!==null?'GPS 기록 중 · 앱을 열린 상태로 유지해 주세요.':tt(`저장된 실제 GPS 위치: ${track.length}개`,`Saved GPS points: ${track.length}`,`保存したGPS地点：${track.length}件`)} <span class="route-tracking-count"></span> · 세부 지형도는 온라인 연결 필요</p><button type="button" class="light-button wide" data-action="route-export-gpx">↓ GPX 경로 내보내기</button><p class="footnote">GPS 이동 기록과 일정 기록은 자동 공개되지 않으며, 백업 파일에 포함되므로 외부 공유에 주의해 주세요.</p></section>`;
-}
 function mountExpeditionRoute(){
  const el=$('#expedition-route-map'),p=state.projects.find(x=>x.id===state.activeExpeditionId);if(!el||!p)return;
  if(!window.L){el.innerHTML='<p class="map-unavailable">지도를 불러올 수 없습니다. 장소와 GPS 좌표는 오프라인에서도 입력·저장할 수 있어요.</p>';return;}
@@ -449,11 +428,11 @@ function startRouteTracking(){
   const last=track[track.length-1];if(last&&geoMeters(last,pt)<12&&(new Date(pt.at)-new Date(last.at)<30000))return;
   if(track.length>=20000){stopRouteTracking();toast('GPS 기록 최대치에 도달했어요. GPX로 백업해 주세요.');return;}
   track.push(pt);await updateExpedition(id,{routeTrack:track});
-  if(state.tab==='profile'&&state.activeExpeditionId===id){const el=$('#expedition-route-map');if(el){if(state.routeMap){state.routeMap.remove();state.routeMap=null;}mountExpeditionRoute();}const text=$('.route-tracking-count');if(text)text.textContent=track.length+' GPS 점 기록됨';}
+  if(state.tab==='profile'&&state.activeExpeditionId===id){if($('#exp-editor-map'))updateExpEditorMap();const text=$('.route-tracking-count');if(text)text.textContent=track.length+' GPS 점 기록됨';}
  },err=>{stopRouteTracking();toast('GPS 추적 중단: 위치 권한이나 신호 상태를 확인해 주세요.');},{enableHighAccuracy:true,maximumAge:0,timeout:25000});
  render();toast('GPS 이동 경로 기록을 시작했어요.');
 }
-function stopRouteTracking(notice=true){if(state.routeTrackingId!==null){navigator.geolocation.clearWatch(state.routeTrackingId);state.routeTrackingId=null;state.routeTrackingProject=null;if(notice)toast('GPS 이동 기록을 종료하고 저장했어요.');}if(state.tab==='profile'&&state.activeExpeditionId)render();}
+function stopRouteTracking(notice=true){const trackedId=state.routeTrackingProject;setTimeout(()=>{const tp=trackedId&&state.projects.find(x=>x.id===trackedId);if(tp?.isPublic&&tp.trackPublic)syncExpeditionPublic(tp).catch(console.warn);},0);if(state.routeTrackingId!==null){navigator.geolocation.clearWatch(state.routeTrackingId);state.routeTrackingId=null;state.routeTrackingProject=null;if(notice)toast('GPS 이동 기록을 종료하고 저장했어요.');}if(state.tab==='profile'&&state.activeExpeditionId)render();}
 function exportRouteGPX(){const p=state.projects.find(x=>x.id===state.activeExpeditionId);if(!p)return;const xml=s=>esc(s);
  const wpts=routeStopsFor(p).filter(routeCoords).map(s=>`<wpt lat="${s.latitude}" lon="${s.longitude}"><name>${xml(s.name)}</name>${s.arrivalDate?`<time>${s.arrivalDate}T00:00:00Z</time>`:''}<desc>${xml(s.note||'')}</desc></wpt>`).join('');
  const pts=routeTrackFor(p).filter(routeCoords).map(s=>`<trkpt lat="${s.latitude}" lon="${s.longitude}">${s.at?`<time>${xml(s.at)}</time>`:''}</trkpt>`).join('');
@@ -507,19 +486,19 @@ function optionsScreen(){const onboarding=!!(state.user&&!state.profile?.onboard
  <details class="setting-accordion"><summary>${tt('지도 설정','MAP SETTINGS','地図設定')}</summary><div class="setting-inner">${mapSettingCard()}</div></details>
  <details class="setting-accordion" ${onboarding||!state.user?'open':''}><summary>${tt('계정 및 개인정보','ACCOUNT & PRIVACY','アカウント・プライバシー')}</summary><div class="setting-inner">${authPanel()}</div></details>
  <details class="setting-accordion"><summary>${tt('온라인 베타','ONLINE BETA','オンラインベータ')}</summary><div class="setting-inner"><p class="setting-description">${esc(invitedNotice())}</p>${state.communitySetupRequired?`<p class="info warning">${tt('좋아요·댓글·장소 기능은 BETA 06 데이터베이스 SQL 적용 후 이용할 수 있습니다.','Run the BETA 06 database SQL to enable likes, comments and venues.','いいね・コメント・場所の機能を使うにはBETA 06のSQLが必要です。')}</p>`:''}${state.onlineError?`<p class="footnote">${esc(state.onlineError)}</p>`:''}</div></details>
- <details class="setting-accordion"><summary>${tt('앱 정보','ABOUT','アプリ情報')}</summary><div class="setting-inner"><p class="setting-description">RAINFOREST MEMORIES · Designed by PLANT MATTER<br>BETA 11 · Pretendard Regular 400</p><p class="footnote">${tt('승인된 베타 멤버만 온라인 기록을 공유할 수 있습니다. 희귀 야생식물의 정확한 좌표는 공개하지 마세요.','Only approved beta testers can share observations. Never publish sensitive wild-plant coordinates.','承認済みメンバーのみ共有できます。希少植物の正確な位置は公開しないでください。')}</p></div></details></section>`;}
+ <details class="setting-accordion"><summary>${tt('앱 정보','ABOUT','アプリ情報')}</summary><div class="setting-inner"><p class="setting-description">RAINFOREST MEMORIES · Designed by PLANT MATTER<br>BETA 12 · Pretendard Regular 400</p><p class="footnote">${tt('승인된 베타 멤버만 온라인 기록을 공유할 수 있습니다. 희귀 야생식물의 정확한 좌표는 공개하지 마세요.','Only approved beta testers can share observations. Never publish sensitive wild-plant coordinates.','承認済みメンバーのみ共有できます。希少植物の正確な位置は公開しないでください。')}</p></div></details></section>`;}
 
 function render(){
  if(state.user && !state.profile?.onboarding_completed && state.tab!=='options')state.tab='options';
  if(state.leaflet){state.leaflet.remove();state.leaflet=null;}
  if(state.routeMap){state.routeMap.remove();state.routeMap=null;}
  teardownPickers();
- const screens={home:homeScreen,map:mapScreen,record:formScreen,profile:()=>state.activeExpeditionId?expeditionRouteScreen():fieldScreen(),options:optionsScreen};
+ const screens={home:homeScreen,map:mapScreen,record:formScreen,profile:()=>state.expeditionCreate?expeditionCreateScreen():state.activeExpeditionId?expeditionRouteScreen():fieldScreen(),options:optionsScreen};
  content.innerHTML=(screens[state.tab]||homeScreen)();
  document.body.classList.toggle('fullscreen-map-open',state.tab==='map'&&state.fullMap);
  document.querySelectorAll('.nav-item').forEach(btn=>btn.classList.toggle('active',btn.dataset.nav===state.tab));
  if(state.tab==='map'||state.tab==='home')mountMap();
- if(state.tab==='profile'&&state.activeExpeditionId)mountExpeditionRoute();
+ if(state.tab==='profile'&&(state.activeExpeditionId||state.expeditionCreate))mountExpEditorMap();
  if(state.tab==='record'){
   if(state.editingId){populateEditForm();if(state.draft?.editingId===state.editingId)restoreDraft(true);}
   else if(state.draft)restoreDraft();
@@ -540,7 +519,7 @@ function nav(tab){
  if(state.tab==='record')saveDraftSoon(true);
  state.editingId=tab==='record'&&state.draft?.editingId&&getRecord(state.draft.editingId)?state.draft.editingId:null;state.fullMap=false;state.tab=tab;state.photoData=null;state.formPhotos=[];state.formHabitat=[];
  if(tab!=='map')state.search='';
- if(tab!=='profile')state.activeExpeditionId=null;
+ if(tab!=='profile'){state.activeExpeditionId=null;state.expeditionCreate=false;state.expEditor=null;}
  closeDetail();render();
 }
 
@@ -550,7 +529,7 @@ function toDateTimeLocal(value){
  return new Date(date.getTime()-date.getTimezoneOffset()*60000).toISOString().slice(0,16);
 }
 function populateEditForm(){
- const r=getRecord(state.editingId), form=$('#observation-form');
+ const r=editableRecord(state.editingId), form=$('#observation-form');
  if(!r||!form)return;
  for(const field of Array.from(form.elements)){
   if(!field.name||field.type==='file'||field.name==='privacy')continue;
@@ -569,22 +548,22 @@ function populateEditForm(){
  }
 }
 function editRecord(id){
- const r=getRecord(id);
+ const r=editableRecord(id);
  if(!canEdit(r))return toast('본인이 작성한 관찰 기록만 수정할 수 있습니다.');
  closeDetail();state.editingId=id;state.photoData=null;state.formPhotos=recordPlantPhotos(r);state.formHabitat=recordHabitatPhotos(r);state.tab='record';render();
 }
 function cancelEdit(){clearDraft().catch(console.warn);state.editingId=null;state.photoData=null;state.formPhotos=[];state.formHabitat=[];state.tab='profile';render();}
 function recordRow(label,value){return `<div class="detail-row"><span>${label}</span><strong>${show(value)}</strong></div>`;}
 function metric(label,value,unit){return `<div class="metric"><small>${label}</small><strong>${value===null||value===undefined||value===''?'미기록':`${esc(value)} ${unit}`}</strong></div>`;}
-function detail(id){const r=getRecord(id);if(!r)return;teardownDexMap();const p=publicPoint(r);overlay.innerHTML=`<div class="detail-body"><div class="detail-header"><span class="eyebrow">FIELD RECORD / ${esc(r.id)}</span><span class="header-actions">${dexBackButton()}<button type="button" class="close" data-action="close">✕ 닫기</button></span></div>${observationGallery(r)||`<div class="detail-picture ${photoSource(r)?'image-clickable':''}" ${photoSource(r)?`data-action="photo-view" data-photo-id="${esc(r.id)}" role="button" tabindex="0" aria-label="사진 전체 화면 보기"`:''}>${artwork(r)}${photoSource(r)?'<span class="photo-full-hint">⛶ 사진 확대</span>':''}</div>`}${r.isDemo?'<span class="tiny-tag">DEMO · 가상 관찰 데이터</span>':''}<h1>${esc(r.scientificName||'미동정 식물')}</h1><p class="lead">${esc(r.family||tt('과명 미기록','Family not recorded','科名未記録'))} · ${esc(translateText(STATUS[r.identificationStatus]||'미동정',state.locale))}</p>${r.isCloud&&r.ownerId?`<div class="detail-author">${authorChip(r.ownerId)}</div>`:''}<div class="detail-section"><h2>OBSERVATION</h2>${recordRow(tt('관찰 일시','Observed','観察日時'),fmtObserved(r))}${r.updatedAt?recordRow('마지막 수정',new Date(r.updatedAt).toLocaleString('ko-KR')):''}${recordRow('국가 / 지역',[r.country,r.locality].filter(Boolean).join(' / '))}${recordRow('해발 고도',r.elevation==null?'미기록':`${r.elevation} m`)}${recordRow('GPS 정확도',r.gpsAccuracy==null?'미기록':`${r.gpsAccuracy} m`)}${r.locationSource?recordRow(tt('위치 기록 방식','Location method','位置の記録方法'),LOCATION_SOURCE()[r.locationSource]||r.locationSource):''}${recordRow('위치 공개',({private:'비공개',coarse:'대략적 위치',public:'정확한 위치'})[r.privacy]||'미기록')}${recordRow('지도 표시 좌표',p?`${p.latitude.toFixed(3)}, ${p.longitude.toFixed(3)}`:'비공개')}${recordRow('생육 형태',r.habit)}${recordRow('서식지',r.habitat)}${recordRow('기질',r.substrate)}${recordRow('생육 상태',r.phenology)}</div><div class="detail-section"><h2>ENVIRONMENTAL DATA</h2><div class="metrics">${metric('ILLUMINANCE',r.lux,'lx')}${metric('PPFD',r.ppfd,'µmol/m²/s')}${metric('TEMPERATURE',r.temperature,'°C')}${metric('HUMIDITY',r.humidity,'%RH')}</div>${recordRow('측정 근거',({instrument:'기기로 실측',estimated:'추정·외부 자료',sample:'가상 예시',unspecified:'미지정','not-recorded':'미측정'})[r.measurementSource]||'미기록')}${recordRow('측정 장비',r.measurementDevice)}${recordRow('측정 시각',r.measuredAt)}</div><div class="detail-section"><h2>FIELD NOTES</h2><p class="long-text">${esc(r.notes||'현장 메모가 없습니다.')}</p>${recordRow('필드 번호',r.fieldNumber)}${recordRow('관찰자',r.collector)}${recordRow('개체군',r.population)}${recordRow('동반 식생',r.associatedSpecies)}${recordRow('표본',r.voucher)}${r.editHistory?.length?recordRow('수정 이력',`${r.editHistory.length}회 수정됨`):''}</div>${observationSocialSection(r)}<div class="detail-section"><h2>IDENTIFICATION HISTORY</h2>${identificationActions(r)}${(r.suggestions||[]).map(s=>recordRow(s.name,`${s.author||'내 기기'} · ${fmt(s.at)}`)+(canEdit(r)&&r.identificationStatus!=='verified'?`<button type="button" class="text-button adopt-id" data-action="id-adopt" data-record-id="${esc(r.id)}" data-name="${esc(s.name)}">✓ ${tt('이 학명으로 동정 완료','Adopt this name as identified','この学名で同定済みにする')}</button>`:'')).join('')||'<p class="mini-muted">동정 제안 이력이 없습니다.</p>'}${!r.isDemo?`<form id="suggest-form"><label class="form-field"><span>${r.isCloud||r.onlinePublished?tt('동정 의견 (테스터에게 공유)','Identification (shared with testers)','同定意見（テスターと共有）'):tt('동정 의견 (기기 내 저장)','Identification (saved on this device)','同定意見（端末内に保存）')}</span><input name="name" maxlength="120" placeholder="예: Ficus punctata" required/></label><input type="hidden" name="recordId" value="${esc(r.id)}"/><button type="submit" class="light-button wide">동정 의견 추가</button></form>`:''}</div>${canEdit(r)?`${visibilitySection(r)}<button type="button" class="primary-button wide" data-edit="${esc(r.id)}">이 관찰 기록 수정하기</button>${r.syncPending?'<p class="footnote">온라인 업로드 예약됨 · 인터넷 연결 시 재시도</p>':''}<button type="button" class="light-button wide detail-delete" data-delete="${esc(r.id)}">이 관찰 기록 삭제</button>`:''}<p class="footnote" style="margin-top:20px">${r.isDemo?'이 기록은 실제 식물 분포나 환경 측정값이 아닙니다.':'정확한 좌표는 개인 기기에 저장되며, 온라인 공유 시 선택한 공개 수준에 맞춰 전송됩니다.'}</p></div>`;overlay.classList.remove('hidden');overlay.setAttribute('aria-hidden','false');overlay.scrollTop=0;translateUI(overlay);hydrateSigned(overlay).catch(console.warn);}
+function detail(id){const r=getRecord(id);if(!r)return;teardownDexMap();const p=publicPoint(r);overlay.innerHTML=`<div class="detail-body"><div class="detail-header"><span class="eyebrow">FIELD RECORD / ${esc(r.id)}</span><span class="header-actions">${dexBackButton()}<button type="button" class="close" data-action="close">✕ 닫기</button></span></div>${observationGallery(r)||`<div class="detail-picture ${photoSource(r)?'image-clickable':''}" ${photoSource(r)?`data-action="photo-view" data-photo-id="${esc(r.id)}" role="button" tabindex="0" aria-label="사진 전체 화면 보기"`:''}>${artwork(r)}${photoSource(r)?'<span class="photo-full-hint">⛶ 사진 확대</span>':''}</div>`}${r.isDemo?'<span class="tiny-tag">DEMO · 가상 관찰 데이터</span>':''}<h1>${esc(r.scientificName||'미동정 식물')}</h1><p class="lead">${esc(r.family||tt('과명 미기록','Family not recorded','科名未記録'))} · ${esc(translateText(STATUS[r.identificationStatus]||'미동정',state.locale))}</p>${r.isCloud&&r.ownerId?`<div class="detail-author">${authorChip(r.ownerId)}</div>`:''}${locationSection(r)}<div class="detail-section"><h2>OBSERVATION</h2>${recordRow(tt('관찰 일시','Observed','観察日時'),fmtObserved(r))}${r.updatedAt?recordRow('마지막 수정',new Date(r.updatedAt).toLocaleString('ko-KR')):''}${recordRow('국가 / 지역'+(canEdit(r)&&r.privacy!=='public'&&r.locality?mineTag():''),[r.country,r.locality].filter(Boolean).join(' / '))}${recordRow('해발 고도',r.elevation==null?'미기록':`${r.elevation} m`)}${recordRow('GPS 정확도'+(canEdit(r)&&r.gpsAccuracy!=null?mineTag():''),r.gpsAccuracy==null?'미기록':`${r.gpsAccuracy} m`)}${r.locationSource?recordRow(tt('위치 기록 방식','Location method','位置の記録方法'),LOCATION_SOURCE()[r.locationSource]||r.locationSource):''}${recordRow('위치 공개',({private:'비공개',coarse:'대략적 위치',public:'정확한 위치'})[r.privacy]||'미기록')}${recordRow('지도 표시 좌표',p?`${p.latitude.toFixed(3)}, ${p.longitude.toFixed(3)}`:'비공개')}${recordRow('생육 형태',r.habit)}${recordRow('서식지',r.habitat)}${recordRow('기질',r.substrate)}${recordRow('생육 상태',r.phenology)}</div><div class="detail-section"><h2>ENVIRONMENTAL DATA</h2><div class="metrics">${metric('ILLUMINANCE',r.lux,'lx')}${metric('PPFD',r.ppfd,'µmol/m²/s')}${metric('TEMPERATURE',r.temperature,'°C')}${metric('HUMIDITY',r.humidity,'%RH')}</div>${recordRow('측정 근거',({instrument:'기기로 실측',estimated:'추정·외부 자료',sample:'가상 예시',unspecified:'미지정','not-recorded':'미측정'})[r.measurementSource]||'미기록')}${recordRow('측정 장비',r.measurementDevice)}${recordRow('측정 시각',r.measuredAt)}</div><div class="detail-section"><h2>FIELD NOTES</h2><p class="long-text">${esc(r.notes||'현장 메모가 없습니다.')}</p>${recordRow('필드 번호'+(canEdit(r)&&r.fieldNumber?mineTag():''),r.fieldNumber)}${recordRow('관찰자'+(canEdit(r)&&r.collector?mineTag():''),r.collector)}${recordRow('개체군'+(canEdit(r)&&r.population?mineTag():''),r.population)}${recordRow('동반 식생'+(canEdit(r)&&r.associatedSpecies?mineTag():''),r.associatedSpecies)}${recordRow('표본'+(canEdit(r)&&r.voucher?mineTag():''),r.voucher)}${r.editHistory?.length?recordRow('수정 이력',`${r.editHistory.length}회 수정됨`):''}</div>${observationSocialSection(r)}<div class="detail-section"><h2>IDENTIFICATION HISTORY</h2>${identificationActions(r)}${(r.suggestions||[]).map(s=>recordRow(s.name,`${s.author||'내 기기'} · ${fmt(s.at)}`)+(canEdit(r)&&r.identificationStatus!=='verified'?`<button type="button" class="text-button adopt-id" data-action="id-adopt" data-record-id="${esc(r.id)}" data-name="${esc(s.name)}">✓ ${tt('이 학명으로 동정 완료','Adopt this name as identified','この学名で同定済みにする')}</button>`:'')).join('')||'<p class="mini-muted">동정 제안 이력이 없습니다.</p>'}${!r.isDemo?`<form id="suggest-form"><label class="form-field"><span>${r.isCloud||r.onlinePublished?tt('동정 의견 (테스터에게 공유)','Identification (shared with testers)','同定意見（テスターと共有）'):tt('동정 의견 (기기 내 저장)','Identification (saved on this device)','同定意見（端末内に保存）')}</span><input name="name" maxlength="120" placeholder="예: Ficus punctata" required/></label><input type="hidden" name="recordId" value="${esc(r.id)}"/><button type="submit" class="light-button wide">동정 의견 추가</button></form>`:''}</div>${canEdit(r)?`${visibilitySection(r)}<button type="button" class="primary-button wide" data-edit="${esc(r.id)}">이 관찰 기록 수정하기</button>${r.syncPending?'<p class="footnote">온라인 업로드 예약됨 · 인터넷 연결 시 재시도</p>':''}<button type="button" class="light-button wide detail-delete" data-delete="${esc(r.id)}">이 관찰 기록 삭제</button>`:''}<p class="footnote" style="margin-top:20px">${r.isDemo?'이 기록은 실제 식물 분포나 환경 측정값이 아닙니다.':'정확한 좌표는 개인 기기에 저장되며, 온라인 공유 시 선택한 공개 수준에 맞춰 전송됩니다.'}</p></div>`;overlay.classList.remove('hidden');overlay.setAttribute('aria-hidden','false');overlay.scrollTop=0;translateUI(overlay);hydrateSigned(overlay).catch(console.warn);mountDetailLocation(r);}
 function closeDetail(){teardownDexMap();state.detailBackUser=null;state.dexUserId=null;overlay.classList.add('hidden');overlay.setAttribute('aria-hidden','true');}
-async function compressPhoto(file){if(!file||!file.type.startsWith('image/'))throw Error('이미지 파일만 선택할 수 있습니다.');if(file.size>25*1024*1024)throw Error('25MB 이하 사진을 사용해 주세요.');const source=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(Error('사진을 읽지 못했습니다.'));reader.readAsDataURL(file);});const image=await new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(Error('사진을 불러오지 못했습니다.'));img.src=source;});/* BETA 09: plant photos are center-cropped to landscape 4:3 (width:height) and capped at 1400×1050. */const iw=image.naturalWidth||image.width,ih=image.naturalHeight||image.height,ratio=4/3;const sw=iw/ih>ratio?ih*ratio:iw,sh=iw/ih>ratio?ih:iw/ratio;const outW=Math.max(4,Math.round(Math.min(1400,sw))),outH=Math.max(3,Math.round(outW/ratio));const canvas=document.createElement('canvas');canvas.width=outW;canvas.height=outH;const ctx=canvas.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,outW,outH);ctx.imageSmoothingQuality='high';ctx.drawImage(image,(iw-sw)/2,(ih-sh)/2,sw,sh,0,0,outW,outH);return canvas.toDataURL('image/jpeg',.77);}
+async function compressPhoto(file){if(!file||!file.type.startsWith('image/'))throw Error('이미지 파일만 선택할 수 있습니다.');if(file.size>25*1024*1024)throw Error('25MB 이하 사진을 사용해 주세요.');const source=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(Error('사진을 읽지 못했습니다.'));reader.readAsDataURL(file);});const image=await new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(Error('사진을 불러오지 못했습니다.'));img.src=source;});/* BETA 12: landscape photos → 16:9, portrait or square → 3:4, centre-cropped, long side ≤ 1600px. */const iw=image.naturalWidth||image.width,ih=image.naturalHeight||image.height,ratio=iw>ih?16/9:3/4;const sw=iw/ih>ratio?ih*ratio:iw,sh=iw/ih>ratio?ih:iw/ratio;const scale=Math.min(1,1600/Math.max(sw,sh));const outW=Math.max(3,Math.round(sw*scale)),outH=Math.max(3,Math.round(sh*scale));const canvas=document.createElement('canvas');canvas.width=outW;canvas.height=outH;const ctx=canvas.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,outW,outH);ctx.imageSmoothingQuality='high';ctx.drawImage(image,(iw-sw)/2,(ih-sh)/2,sw,sh,0,0,outW,outH);return canvas.toDataURL('image/jpeg',.77);}
 async function choosePhoto(file){if(!file)return;try{state.photoData=await compressPhoto(file);$('#photo-box').innerHTML=`<img alt="선택한 식물 사진 미리보기" src="${state.photoData}"/>`;const rm=$('[data-action="remove-photo"]');if(rm)rm.disabled=false;saveDraftSoon();toast('사진을 첨부했어요. EXIF 메타데이터는 저장되지 않습니다.');}catch(e){toast(e.message||'사진을 처리할 수 없습니다.');}}
 function useGPS(){if(!navigator.geolocation){toast('이 브라우저에서는 GPS를 사용할 수 없습니다.');return;}toast('GPS 위치 권한을 확인하고 있습니다…');navigator.geolocation.getCurrentPosition(({coords})=>{if(!$('#observation-form'))return;setPickedLocation(coords.latitude,coords.longitude,{source:'gps',accuracy:coords.accuracy,altitude:coords.altitude});toast(tt('현재 위치를 지도에 찍었어요. 핀을 끌어 미세 조정할 수 있습니다.','Your current location is pinned. Drag the pin to fine-tune it.','現在地をピンで記録しました。ピンをドラッグして調整できます。'));},err=>toast('GPS를 사용할 수 없습니다. HTTPS 연결·위치 권한을 확인해 주세요.'),{enableHighAccuracy:true,timeout:16000,maximumAge:2000});}
 async function saveForm(form){const data=new FormData(form), get=k=>txt(data.get(k)),lat=get('latitude'),lon=get('longitude');if(!get('scientificName')&&!state.formPhotos.length){toast('식물 사진이나 학명 중 하나는 필수예요.');return;}
  if((lat!==''||lon!=='')&&(lat===''||lon===''||!Number.isFinite(Number(lat))||!Number.isFinite(Number(lon))||Number(lat)<-90||Number(lat)>90||Number(lon)<-180||Number(lon)>180)){toast('위도와 경도를 올바르게 입력해 주세요.');return;}
  const numericKeys=['elevation','gpsAccuracy','lux','ppfd','temperature','humidity'];const d=Object.fromEntries(data.entries());for(const key of numericKeys){if(d[key]!==undefined&&d[key]!==''&&!Number.isFinite(Number(d[key]))){toast(`${key} 값을 확인해 주세요.`);return;}}
- const previous=state.editingId?getRecord(state.editingId):null;
+ const previous=state.editingId?editableRecord(state.editingId):null;
  if(state.editingId&&!previous){toast('수정할 원본 기록을 찾을 수 없습니다.');return;}
  const observedAt=observedFromForm(get('observedDate'),get('observedTime'));
  if(!observedAt){toast(tt('발견 날짜를 입력해 주세요.','Enter the date you found the plant.','発見日を入力してください。'));return;}
@@ -592,6 +571,8 @@ async function saveForm(form){const data=new FormData(form), get=k=>txt(data.get
  const now=new Date().toISOString();
  const record={...previous,...d,id:previous?.id||`PMF-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,isDemo:false,scientificName:get('scientificName')||'미동정 식물',latitude:numberOrNull(lat),longitude:numberOrNull(lon),gpsAccuracy:numberOrNull(get('gpsAccuracy')),elevation:numberOrNull(get('elevation')),observedAt,observedTimeUnknown:!get('observedTime'),locationSource:lat!==''?(get('locationSource')||null):null,createdAt:previous?.createdAt||now,updatedAt:previous?now:null,photos:[...state.formPhotos],habitatPhotos:[...state.formHabitat],photoData:isSafePhoto(state.formPhotos[0])?state.formPhotos[0]:null,photoPath:previous?.photoPath||null,onlinePublished:previous?.onlinePublished||false,syncPending:previous?.onlinePublished||previous?.syncPending||false,identificationStatus:get('identificationStatus')||'unidentified',measurementSource:get('measurementSource')||'not-recorded',suggestions:previous?.suggestions||[]};
  delete record.observedDate;delete record.observedTime;
+ {const visibility=get('visibility')||'public';delete record.visibility;record.hidden=visibility==='private';if(state.member&&state.user){record.onlinePublished=true;record.syncPending=true;}}
+ if(record.latitude!==null&&Number.isFinite(record.latitude)){try{const code=await detectCountryCode(record.latitude,record.longitude);record.countryCode=code||null;if(code&&!txt(record.country))record.country=countryLabel(code);}catch(e){console.warn(e);}}else record.countryCode=null;
  {const localCopy=state.records.find(x=>x.id===record.id);if(localCopy){record.uploadedPhotoMap=localCopy.uploadedPhotoMap;record.cloudPhotoPaths=localCopy.cloudPhotoPaths;}}
  if(['lux','ppfd','temperature','humidity'].some(k=>get(k)!=='')&&record.measurementSource==='not-recorded')record.measurementSource='unspecified';
  if(previous){
@@ -599,7 +580,7 @@ async function saveForm(form){const data=new FormData(form), get=k=>txt(data.get
   record.editHistory=[...(previous.editHistory||[]),{at:now,changedFields}];
  }
  const btn=$('#save-button');btn.disabled=true;btn.textContent='저장 중…';
- try{await storeRecord(record);await clearDraft();state.editingId=null;state.photoData=null;state.formPhotos=[];state.formHabitat=[];state.tab='profile';render();detail(record.id);if(record.syncPending)syncPendingRecords().catch(console.warn);toast(previous?'관찰 기록의 수정 사항을 저장했어요.':'새 관찰 기록을 이 기기에 저장했어요.');}
+ try{await storeRecord(record);await clearDraft();state.editingId=null;state.photoData=null;state.formPhotos=[];state.formHabitat=[];state.tab='profile';render();detail(record.id);if(record.syncPending)syncPendingRecords().catch(console.warn);toast(record.onlinePublished?(navigator.onLine?tt('저장했습니다 · 온라인에 올리는 중','Saved · uploading','保存しました · アップロード中'):tt('이 기기에 저장했습니다 · 인터넷이 연결되면 자동으로 올라갑니다','Saved on this device · uploads when online','端末に保存しました · 接続時に自動アップロード')):(previous?'관찰 기록의 수정 사항을 저장했어요.':'새 관찰 기록을 이 기기에 저장했어요.'));}
  catch(e){btn.disabled=false;btn.textContent=previous?'변경 사항 저장하기':'관찰 기록 저장하기';toast(`저장 실패: ${e.message||e}`);}}
 async function addSuggestion(form){const id=form.elements.recordId.value,name=txt(form.elements.name.value),r=getRecord(id);if(!r||r.isDemo||!name)return;const updated={...r,identificationStatus:r.identificationStatus==='verified'?'verified':'proposed',suggestions:[...(r.suggestions||[]),{name,author:'내 기기',at:new Date().toISOString()}]};try{if(r.isCloud||r.onlinePublished){await submitOnlineSuggestion(id,name);detail(id);toast('동정 의견을 공유했어요.');return;}await storeRecord(updated);detail(id);toast('개인 동정 의견을 저장했어요.');}catch(e){toast('동정 의견 저장에 실패했습니다.');}}
 function download(name,text){const blob=new Blob([text],{type:name.endsWith('.gpx')?'application/gpx+xml;charset=utf-8':'application/json;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),45000);}
@@ -753,13 +734,13 @@ function restoreDraft(force=false){
  const label=$('#draft-status');if(label)label.textContent='이전 입력 내용 자동 복구됨';
 }
 async function clearDraft(){clearTimeout(state.draftTimer);state.draft=null;try{await namedStore('drafts','readwrite',s=>s.delete('current'));}catch(e){console.warn(e);}}
-function selectSpot(id){state.selectedVenue=null;state.selectedMap=id;const popup=$('#map-pin-popup');if(popup){popup.innerHTML=pinSummary();popup.classList.remove('hidden');translateUI(popup);hydrateSigned(popup).catch(console.warn);}}
+function selectSpot(id){state.selectedGroup=null;state.selectedVenue=null;state.selectedMap=id;const popup=$('#map-pin-popup');if(popup){popup.innerHTML=pinSummary();popup.classList.remove('hidden');translateUI(popup);hydrateSigned(popup).catch(console.warn);}}
 function setFullscreenMap(open){
  state.fullMap=open;state.tab='map';render();
  if(open)toast('지도를 드래그하거나 두 손가락으로 확대할 수 있습니다.');
 }
-function closeSpot(){state.selectedVenue=null;state.selectedMap=null;const pop=$('#map-pin-popup');if(pop)pop.classList.add('hidden');}
-function selectVenue(id){state.selectedMap=null;state.selectedVenue=id;const popup=$('#map-pin-popup');if(popup){popup.innerHTML=pinSummary();popup.classList.remove('hidden');translateUI(popup);hydrateSigned(popup).catch(console.warn);}}
+function closeSpot(){state.selectedGroup=null;state.selectedVenue=null;state.selectedMap=null;const pop=$('#map-pin-popup');if(pop)pop.classList.add('hidden');}
+function selectVenue(id){state.selectedGroup=null;state.selectedMap=null;state.selectedVenue=id;const popup=$('#map-pin-popup');if(popup){popup.innerHTML=pinSummary();popup.classList.remove('hidden');translateUI(popup);hydrateSigned(popup).catch(console.warn);}}
 
 function openPhotoViewer(id,srcOverride){
  const r=getRecord(id),src=srcOverride||photoSource(r);if(!src)return;
@@ -778,16 +759,16 @@ function invitedNotice(){return state.authClient?(!state.user?'로그인하면 �
 function rowFromRecord(r){
  const p=publicPoint(r);
  return {id:r.id,owner_id:state.user.id,scientific_name:r.scientificName||'미동정 식물',family:r.family||null,country:r.country||null,locality:r.privacy==='public'?(r.locality||null):null,
-  latitude:p?.latitude??null,longitude:p?.longitude??null,privacy:r.privacy||'private',elevation:r.elevation??null,habitat:r.habitat||null,habit:r.habit||null,
+  latitude:r.privacy==='public'&&p?p.latitude:null,longitude:r.privacy==='public'&&p?p.longitude:null,privacy:r.privacy||'private',elevation:r.elevation??null,habitat:r.habitat||null,habit:r.habit||null,
   substrate:r.substrate||null,phenology:r.phenology||null,lux:r.lux===''?null:r.lux??null,ppfd:r.ppfd===''?null:r.ppfd??null,
   temperature:r.temperature===''?null:r.temperature??null,humidity:r.humidity===''?null:r.humidity??null,
   observed_at:r.observedAt||new Date().toISOString(),notes:r.notes||null,identification_status:r.identificationStatus||'unidentified',
   measurement_source:r.measurementSource||'not-recorded',measurement_device:r.measurementDevice||null,measured_at:r.measuredAt||null,
-  photo_path:r.photoPath||null,is_hidden:!!r.hidden,observed_time_unknown:!!r.observedTimeUnknown,updated_at:new Date().toISOString()};
+  photo_path:r.photoPath||null,is_hidden:!!r.hidden,observed_time_unknown:!!r.observedTimeUnknown,country_code:r.countryCode||null,expedition_id:r.projectId||null,updated_at:new Date().toISOString()};
 }
-function fromCloud(row, photoUrl, privateCoords){
+function fromCloud(row, photoUrl, privateCoords, details){
  return {id:row.id,isCloud:true,onlinePublished:true,ownerId:row.owner_id,hidden:row.is_hidden===true,observedTimeUnknown:row.observed_time_unknown===true,photoPath:row.photo_path||null,photoUrl:photoUrl||null,photos:Array.isArray(row.photo_paths)&&row.photo_paths.length?row.photo_paths:(row.photo_path?[row.photo_path]:[]),habitatPhotos:Array.isArray(row.habitat_photo_paths)?row.habitat_photo_paths:[],
- scientificName:row.scientific_name,family:row.family,country:row.country,locality:row.locality,privacy:row.privacy,
+ scientificName:row.scientific_name,family:row.family,country:row.country,locality:details?.locality??row.locality,privacy:row.privacy,countryCode:row.country_code||null,serverHasCoords:row.latitude!==null&&row.latitude!==undefined,fieldNumber:details?.field_number||'',collector:details?.collector||'',population:details?.population||'',associatedSpecies:details?.associated_species||'',voucher:details?.voucher||'',locationSource:details?.location_source||null,projectId:row.expedition_id||'',
  latitude:privateCoords?.latitude??row.latitude,longitude:privateCoords?.longitude??row.longitude,
  gpsAccuracy:privateCoords?.gps_accuracy??null,elevation:row.elevation,habitat:row.habitat,habit:row.habit,substrate:row.substrate,
  phenology:row.phenology,lux:row.lux,ppfd:row.ppfd,temperature:row.temperature,humidity:row.humidity,
@@ -806,12 +787,15 @@ async function loadSharedRecords(){
  const mine=(data||[]).filter(r=>r.owner_id===state.user.id).map(r=>r.id);
  let exactById={};
  if(mine.length){const {data:coordinates,error:privateErr}=await client.from('field_private_locations').select('observation_id,latitude,longitude,gps_accuracy').in('observation_id',mine);if(!privateErr)exactById=Object.fromEntries((coordinates||[]).map(x=>[x.observation_id,x]));}
+ let detailsById={};
+ if(mine.length){const {data:det,error:detErr}=await client.from('field_private_details').select('*').in('observation_id',mine);if(!detErr)detailsById=Object.fromEntries((det||[]).map(x=>[x.observation_id,x]));}
  const urls=await Promise.all((data||[]).map(r=>resolveSignedPhoto(r.photo_path)));
  const {data:identifications,error:idError}=await client.from('field_identifications').select('observation_id,proposed_name,created_at').order('created_at',{ascending:true}).limit(1000);
  const byObservation={};if(!idError)for(const s of identifications||[]){(byObservation[s.observation_id]??=[]).push({name:s.proposed_name,author:'테스터',at:s.created_at});}
- state.sharedRecords=(data||[]).map((r,i)=>({...fromCloud(r,urls[i],r.owner_id===state.user.id?exactById[r.id]:null),suggestions:byObservation[r.id]||[]}));
+ state.sharedRecords=(data||[]).map((r,i)=>({...fromCloud(r,urls[i],r.owner_id===state.user.id?exactById[r.id]:null,r.owner_id===state.user.id?detailsById[r.id]:null),suggestions:byObservation[r.id]||[]}));
  await loadCommunity();
  await loadRanking().catch(console.warn);
+ await migrateCoarseRows().catch(console.warn);
  if(state.tab==='map'||state.tab==='home'||(state.tab==='profile'&&!venueFormOpen()))render();
 }
 async function isMember(){
@@ -847,6 +831,7 @@ async function syncPendingRecords(){
  state.onlineBusy=true;
  try{
   const pending=state.records.filter(r=>r.syncPending&&r.onlinePublished);
+  for(const r of pending)if(!r.countryCode&&r.latitude!==null&&r.latitude!==''&&Number.isFinite(Number(r.latitude))){const code=await detectCountryCode(r.latitude,r.longitude).catch(()=>null);if(code)r.countryCode=code;}
   for(const r of pending){
    try{
     const up=await uploadObservationPhotos(r),path=up.plant[0]||null;
@@ -856,8 +841,10 @@ async function syncPendingRecords(){
     // BETA 11 columns missing (SQL not applied yet): share the cover photo only.
     if(error&&/photo_paths|habitat_photo_paths/i.test(error.message||'')){const {photo_paths,habitat_photo_paths,...rest}=payload;payload=rest;({error}=await send(payload));}
     // BETA07 columns missing (SQL not applied yet): keep syncing normal records, never silently publish a hidden one.
+    if(error&&/country_code|expedition_id/i.test(error.message||'')){const {country_code,expedition_id,...rest}=payload;payload=rest;({error}=await send(payload));}
     if(error&&isBeta07SchemaError(error)&&!payload.is_hidden){const {is_hidden,observed_time_unknown,...legacy}=payload;payload=legacy;({error}=await send(payload));}
     if(error)throw error;
+    await savePrivateDetails(r);
     // Exact GPS is never stored in the group-readable observation table unless the user explicitly selected public.
     if(Number.isFinite(r.latitude)&&Number.isFinite(r.longitude)){
      const {error:coordinateError}=await state.authClient.from('field_private_locations').upsert({observation_id:r.id,owner_id:state.user.id,latitude:r.latitude,longitude:r.longitude,gps_accuracy:r.gpsAccuracy??null},{onConflict:'observation_id'});
@@ -992,9 +979,10 @@ function visibilitySection(r){
   private:[tt('비공개 · 나만 보기','Private · only me','非公開 · 自分のみ'),tt('온라인에 보관되지만 다른 멤버에게는 피드·지도·댓글·사진이 모두 보이지 않습니다.','Kept online, but hidden from other members in the feed, map, comments and photos.','オンラインに保存されますが、他のメンバーにはフィード・地図・コメント・写真が表示されません。')]
  }[s];
  let button='';
- if(s==='local')button=state.member?`<button type="button" class="light-button wide online-share-btn" data-action="share-record" data-record-id="${id}">지인 그룹에 관찰 기록 공유</button>`:'';
+ if(s==='local')button=state.member?`<button type="button" class="light-button wide" data-action="backup-record" data-record-id="${id}">${tt('온라인에 비공개로 백업','Back up online as private','非公開でオンラインにバックアップ')}</button>`:`<p class="mini-muted">${tt('로그인한 승인 멤버는 저장할 때 온라인에도 자동으로 저장됩니다.','Approved members are saved online automatically.','承認済みメンバーは自動でオンライン保存されます。')}</p>`;
  else if(s==='shared')button=`<button type="button" class="light-button wide" data-action="record-hide" data-record-id="${id}">${tt('비공개로 전환','Make private','非公開にする')}</button>`;
  else button=`<button type="button" class="light-button wide" data-action="record-unhide" data-record-id="${id}">${tt('다시 공개하기','Share again','再公開する')}</button>`;
+ if(r.syncPending&&s!=='local')button+=`<p class="mini-muted">${tt('온라인 업로드 대기 중 · 인터넷이 연결되면 자동으로 올라갑니다.','Waiting to upload · it will upload when online.','アップロード待ち · 接続時に自動アップロードされます。')}</p>`;
  return `<div class="detail-section visibility-section"><h2>${tt('공개 범위','VISIBILITY','公開範囲')}</h2><div class="visibility-state ${s}"><strong>${info[0]}</strong><small>${info[1]}</small></div>${button}</div>`;
 }
 async function setRecordHidden(id,hidden){
@@ -1130,7 +1118,7 @@ async function searchPeople(q){
 }
 // ---------- personal plant dex ----------
 const speciesKey=name=>{const n=txt(name).toLocaleLowerCase();return !n||n==='미동정 식물'||n==='unidentified plant'?'':n.replace(/\s+/g,' ');};
-function teardownDexMap(){if(state.dexMap){state.dexMap.remove();state.dexMap=null;}}
+function teardownDexMap(){teardownDetailMap();if(state.dexMap){state.dexMap.remove();state.dexMap=null;}}
 async function openUserDex(uid){
  if(!uid)return;if(!state.member||!state.authClient)return toast(tt('도감은 승인된 베타 멤버만 볼 수 있습니다.','The dex needs an approved beta account.','図鑑は承認済みメンバーのみ閲覧できます。'));
  teardownDexMap();state.detailBackUser=null;state.dexUserId=uid;
@@ -1138,11 +1126,12 @@ async function openUserDex(uid){
  overlay.classList.remove('hidden');overlay.setAttribute('aria-hidden','false');overlay.scrollTop=0;
  const c=state.authClient;
  try{
-  const [prof,obs,places,plants]=await Promise.all([
+  const [prof,obs,places,plants,exps]=await Promise.all([
    c.from('profiles').select('*').eq('id',uid).maybeSingle(),
    c.from('field_observations').select('*').eq('owner_id',uid).order('observed_at',{ascending:true}).limit(500),
    c.from('botanical_places').select('*').eq('owner_id',uid).order('created_at',{ascending:true}).limit(100),
-   c.from('place_plants').select('*').eq('owner_id',uid).order('created_at',{ascending:true}).limit(1000)]);
+   c.from('place_plants').select('*').eq('owner_id',uid).order('created_at',{ascending:true}).limit(1000),
+   c.from('expeditions').select('*').eq('owner_id',uid).order('updated_at',{ascending:false}).limit(100)]);
   if(prof.error)throw prof.error;if(!prof.data)throw Error(tt('이용자를 찾을 수 없습니다.','User not found.','ユーザーが見つかりません。'));
   if(state.dexUserId!==uid)return;
   const rows=obs.error?[]:(obs.data||[]);
@@ -1152,7 +1141,7 @@ async function openUserDex(uid){
   for(const p of placeRows){const i=state.places.findIndex(x=>x.id===p.id);if(i>=0)state.places[i]=p;else state.places.push(p);}
   for(const p of plantRows){const i=state.placePlants.findIndex(x=>x.id===p.id);if(i>=0)state.placePlants[i]=p;else state.placePlants.push(p);}
   rememberPerson(prof.data);
-  state.dexRecords=records;state.dex={uid,profile:prof.data,records,places:placeRows,plants:plantRows};
+  state.dexRecords=records;state.dex={uid,profile:prof.data,records,places:placeRows,plants:plantRows,expeditions:exps?.error?[]:(exps?.data||[])};
   renderUserDex();
  }catch(e){if(state.dexUserId===uid){overlay.querySelector('.loader').textContent=e.message||String(e);}}
 }
@@ -1176,6 +1165,7 @@ function renderUserDex(){
  <section class="dex-section"><h2>${tt('자연에서 발견한 식물','FOUND IN THE WILD','野外で発見した植物')}</h2>${obsTiles?`<div class="dex-grid">${obsTiles}</div>`:`<p class="mini-muted">${tt('공개된 발견 기록이 없습니다.','No shared finds yet.','公開された発見記録はありません。')}</p>`}</section>
  <section class="dex-section"><h2>${tt('보유 식물','PLANTS KEPT','保有植物')}</h2>${plantGroups||`<p class="mini-muted">${tt('등록된 보유 식물이 없습니다.','No plants listed.','登録された植物はありません。')}</p>`}</section>
  <section class="dex-section"><h2>${tt('공방 · 작업실 위치','PLACES','工房・アトリエの場所')}</h2>${places.length?`<div id="dex-map" class="dex-map" aria-label="${esc(tt('공간 위치 지도','Places map','場所の地図'))}"></div>${placeRows}`:`<p class="mini-muted">${tt('등록한 공간이 없습니다.','No places registered.','登録された場所はありません。')}</p>`}</section>
+ ${dexExpeditionSection(d)}
  <section class="dex-section"><h2>${tt('공개 연락처','PUBLIC CONTACT','公開連絡先')}</h2>${contacts||`<p class="mini-muted">${tt('공개된 연락처가 없습니다.','No public contact details.','公開された連絡先はありません。')}</p>`}</section></div>`;
  overlay.classList.remove('hidden');overlay.setAttribute('aria-hidden','false');overlay.scrollTop=0;translateUI(overlay);
  hydrateSigned(overlay).catch(console.warn);
@@ -1232,14 +1222,14 @@ function fieldScreen(){
 }
 function myProfileView(){
  const mine=state.records.length,countries=new Set(state.records.map(r=>r.country).filter(Boolean)).size,observations=samples().filter(canEdit);
- const projectCards=state.projects.map(p=>{const count=state.records.filter(r=>r.projectId===p.id).length;return `<div class="project-card"><div><strong>${esc(p.name)}</strong><small>${esc([p.country,p.locality].filter(Boolean).join(' · ')||tt('지역 미설정','No area set','地域未設定'))} · ${tt(`${count}개 기록`,`${count} records`,`${count}件の記録`)}</small></div><div class="project-actions"><button class="light-button" type="button" data-action="project-route" data-project-id="${esc(p.id)}">이동 경로 / 일정</button><button class="light-button" type="button" data-action="project-use" data-project-id="${esc(p.id)}">식물 기록</button></div></div>`}).join('');
+ const projectCards=state.projects.map(p=>{const count=state.records.filter(r=>r.projectId===p.id).length;return `<div class="project-card"><div><strong>${esc(p.name)}</strong> <span class="tiny-tag ${p.isPublic?'exp-public':''}">${p.isPublic?tt('공개','PUBLIC','公開'):tt('비공개','PRIVATE','非公開')}</span><small>${esc([p.country,p.locality].filter(Boolean).join(' · ')||tt('지역 미설정','No area set','地域未設定'))} · ${tt(`${count}개 기록`,`${count} records`,`${count}件の記録`)}</small></div><div class="project-actions"><button class="light-button" type="button" data-action="project-route" data-project-id="${esc(p.id)}">이동 경로 / 일정</button><button class="light-button" type="button" data-action="project-use" data-project-id="${esc(p.id)}">식물 기록</button><button class="light-button" type="button" data-action="exp-delete" data-project-id="${esc(p.id)}">${tt('삭제','DELETE','削除')}</button></div></div>`}).join('');
  const pending=state.records.filter(r=>r.syncPending).length,myPlaces=state.places.filter(p=>p.owner_id===state.user?.id).length;
  return `<div class="my-profile-card">${profileHeader()}${accountTypeCard()}<div class="stats"><div class="stat"><strong>${mine}</strong><span>내 기록</span></div><div class="stat"><strong>${countries}</strong><span>국가</span></div><div class="stat"><strong>${state.projects.length}</strong><span>탐사 프로젝트</span></div></div></div>
  ${profileSection('observations',tt('나의 관찰 식물','MY OBSERVATIONS','自分の観察植物'),observations.map(recordCard).join('')||'<div class="empty">아직 관찰 기록이 없습니다.</div>',observations.length)}
  ${profileSection('places',tt('나의 식물 공간','MY BOTANICAL PLACES','自分の植物スポット'),venueProfileSection(),myPlaces)}
  ${profileSection('plants',tt('나의 보유 식물','MY PLANTS','自分の保有植物'),myPlantsBody(),state.placePlants.filter(x=>x.owner_id===state.user?.id).length)}
- ${profileSection('expeditions',tt('탐사 프로젝트','EXPEDITIONS','探査プロジェクト'),`<form id="project-form" class="project-form"><label class="form-field"><span>탐사명</span><input type="text" name="name" maxlength="90" placeholder="예: Fraser's Hill 2026" required/></label><div class="two-col">${fieldInput('country','국가','Malaysia')}${fieldInput('locality','지역','Fraser’s Hill')}</div><button class="light-button wide" type="submit">＋ 탐사 프로젝트 추가</button></form>${projectCards||'<p class="mini-muted">아직 만든 탐사가 없습니다.</p>'}`,state.projects.length)}
- ${profileSection('sync',tt('온라인 공유 · 업로드','ONLINE SHARING','オンライン共有'),`<p class="mini-muted acc-status">${state.member?'INVITED TESTER':state.authClient?'NOT CONNECTED':'SETUP REQUIRED'}</p><div class="info">${state.member?tt(`지인 그룹과 공유할 기록을 선택해서 게시할 수 있습니다. 대기 중인 업로드: ${pending}개. 인터넷이 연결되면 공유 예약된 기록을 동기화합니다.`,`Choose records to share with the group. Pending uploads: ${pending}. Queued records sync when you are online.`,`共有する記録を選んで公開できます。アップロード待ち：${pending}件。オンラインになると同期します。`):'내 기록은 현재 기기에 저장됩니다. 온라인 공유는 Supabase 프로젝트 연결과 초대 승인이 필요합니다.'}</div><button type="button" class="light-button wide" data-action="sync-now" ${state.member?'':'disabled'}>↻ 온라인 기록 동기화</button>`,pending||undefined)}
+ ${profileSection('expeditions',tt('탐사 프로젝트','EXPEDITIONS','探査プロジェクト'),`<button type="button" class="primary-button wide exp-new" data-action="exp-new">＋ ${tt('새 탐사 만들기','New expedition','新しい探査')}</button>${projectCards||'<p class="mini-muted">아직 만든 탐사가 없습니다.</p>'}`,state.projects.length)}
+ ${profileSection('sync',tt('온라인 공유 · 업로드','ONLINE SHARING','オンライン共有'),`<p class="mini-muted acc-status">${state.member?'INVITED TESTER':state.authClient?'NOT CONNECTED':'SETUP REQUIRED'}</p><div class="info">${state.member?tt(`지인 그룹과 공유할 기록을 선택해서 게시할 수 있습니다. 대기 중인 업로드: ${pending}개. 인터넷이 연결되면 공유 예약된 기록을 동기화합니다.`,`Choose records to share with the group. Pending uploads: ${pending}. Queued records sync when you are online.`,`共有する記録を選んで公開できます。アップロード待ち：${pending}件。オンラインになると同期します。`):'내 기록은 현재 기기에 저장됩니다. 온라인 공유는 Supabase 프로젝트 연결과 초대 승인이 필요합니다.'}</div>${state.member&&localOnlyRecords().length?`<button type="button" class="primary-button wide backup-all" data-action="backup-local">${tt(`기기에만 있는 기록 ${localOnlyRecords().length}개를 비공개로 온라인 백업`,`Back up ${localOnlyRecords().length} device-only records online (private)`,`端末のみの記録${localOnlyRecords().length}件を非公開でバックアップ`)}</button>`:''}<button type="button" class="light-button wide" data-action="sync-now" ${state.member?'':'disabled'}>↻ 온라인 기록 동기화</button>`,pending||undefined)}
  ${profileSection('backup',tt('데이터 백업','DATA BACKUP','データのバックアップ'),`<div class="profile-actions"><button type="button" class="light-button" data-action="export">JSON 내보내기</button><button type="button" class="light-button" data-action="import">JSON 가져오기</button></div><input type="file" class="hidden-input" accept="application/json,.json" id="import-input"/><p class="footnote">백업 파일에는 정확한 좌표와 사진이 포함될 수 있으니 비공개로 보관하세요. 기록 데이터는 기존 BETA 02/03과 같은 기기 저장소를 사용합니다.</p>`)}`;
 }
 function friendsView(){
@@ -1346,7 +1336,7 @@ function venuePhotoGrid(){
 }
 function venuePhotoField(){
  if(state.beta09Missing)return `<div class="form-field"><span>${tt('대표 사진','COVER PHOTOS','カバー写真')}</span><p class="mini-muted">${SQL09_NOTICE()}</p></div>`;
- return `<div class="form-field"><span>${tt('대표 사진 (최대 10장)','COVER PHOTOS (UP TO 10)','カバー写真（最大10枚）')}</span><div id="venue-photo-grid" class="vp-grid">${venuePhotoGrid()}</div><input type="file" id="venue-photo-input" class="hidden-input" accept="image/*" multiple/><small>${tt('첫 번째 사진이 대표 사진입니다. 모든 사진은 가로 4:3 비율로, 가운데를 기준으로 자동으로 잘립니다.','The first photo is the cover. All photos are center-cropped to a 4:3 landscape ratio.','最初の写真がカバーになります。すべて横4:3の比率で中央を基準に切り取られます。')}</small></div>`;
+ return `<div class="form-field"><span>${tt('대표 사진 (최대 10장)','COVER PHOTOS (UP TO 10)','カバー写真（最大10枚）')}</span><div id="venue-photo-grid" class="vp-grid">${venuePhotoGrid()}</div><input type="file" id="venue-photo-input" class="hidden-input" accept="image/*" multiple/><small>${tt('첫 번째 사진이 대표 사진입니다. 가로 사진은 16:9, 세로 사진은 3:4로 자동으로 잘립니다.','The first photo is the cover. Landscape photos are cropped to 16:9, portrait to 3:4.','最初の写真がカバーです。横長は16:9、縦長は3:4に切り取られます。')}</small></div>`;
 }
 function refreshVenuePhotoGrid(){const g=$('#venue-photo-grid');if(!g)return;g.innerHTML=venuePhotoGrid();translateUI(g);hydrateSigned(g).catch(console.warn);}
 async function addVenuePhotos(fileList){
@@ -1369,9 +1359,9 @@ const SQL10_NOTICE=()=>tt('먼저 Supabase에 BETA 10 SQL(supabase/beta10_accoun
 const OPERATOR_KINDS=()=>[['shop',tt('매장·쇼룸','Shop·Showroom','ショップ・ショールーム')],['greenhouse',tt('온실·농장','Greenhouse·Farm','温室・農園')],['culture',tt('문화공간·전시','Culture·Exhibition','文化施設・展示')],['research',tt('연구·교육시설','Research·Education','研究・教育施設')]];
 const LEGACY_KINDS=()=>[['workshop',tt('공방','Workshop','工房')],['store',tt('매장','Store','店舗')],['studio',tt('작업실','Studio','アトリエ')]];
 const PERSONAL_CATEGORIES=()=>[
- ['collector',tt('수집가','Collector','コレクター'),tt('희귀·관심 식물을 모으고 관리합니다.','Collects and keeps rare or favourite plants.','希少な植物やお気に入りを集めて育てます。')],
- ['grower',tt('재배가','Grower','栽培家'),tt('번식과 재배, 실내 가드닝을 즐깁니다.','Enjoys propagating and growing plants.','繁殖や栽培、室内ガーデニングを楽しみます。')],
- ['explorer',tt('탐사가','Field explorer','探査家'),tt('자생지를 찾아 식물을 관찰하고 기록합니다.','Finds and records plants in their native habitats.','自生地を訪ねて植物を観察・記録します。')]];
+ ['collector',tt('식물 수집','Collector','植物の収集'),tt('희귀·관심 식물을 모으고 돌봅니다.','Collects and cares for rare or favourite plants.','希少な植物やお気に入りを集めて育てます。')],
+ ['grower',tt('식물 재배','Grower','植物の栽培'),tt('번식과 재배, 실내 가드닝을 즐깁니다.','Enjoys propagating and growing plants.','繁殖や栽培、室内ガーデニングを楽しみます。')],
+ ['explorer',tt('야생 관찰','Field Explorer','野生の観察'),tt('자생지를 찾아 식물을 관찰하고 기록합니다.','Finds and records plants in their native habitats.','自生地を訪ねて植物を観察・記録します。')]];
 function placeKind(kind){
  if(kind==='personal')return tt('개인 공간','Personal space','個人スペース');
  const hit=[...OPERATOR_KINDS(),...LEGACY_KINDS()].find(([k])=>k===kind);
@@ -1395,12 +1385,13 @@ function accountTypeCard(){
  const t=state.profile.account_type==='operator'?'operator':'personal',c=state.profile.personal_category||'',cat=PERSONAL_CATEGORIES().find(([k])=>k===c);
  return `<div class="account-type"><div class="account-type-head"><span>${tt('계정 유형','ACCOUNT TYPE','アカウント種別')}</span><small>${tt('언제든 바꿀 수 있습니다','You can change this anytime','いつでも変更できます')}</small></div>
  <div class="segmented small" role="radiogroup" aria-label="${esc(tt('계정 유형','Account type','アカウント種別'))}"><button type="button" role="radio" aria-checked="${t==='personal'}" class="${t==='personal'?'active':''}" data-action="account-type" data-type="personal">${tt('개인','Personal','個人')}</button><button type="button" role="radio" aria-checked="${t==='operator'}" class="${t==='operator'?'active':''}" data-action="account-type" data-type="operator">${tt('공간 운영자','Space operator','スペース運営者')}</button></div>
- ${t==='personal'?`<div class="pill-row cat-row">${PERSONAL_CATEGORIES().map(([k,label])=>`<button type="button" class="pill ${c===k?'active':''}" data-action="personal-category" data-cat="${k}" aria-pressed="${c===k}">${label}</button>`).join('')}</div><small class="account-desc">${cat?esc(cat[2]):tt('나를 소개할 카테고리를 골라 보세요. 도감과 검색 결과에 표시됩니다.','Pick a category that describes you. It appears in your dex and search results.','自分に合うカテゴリーを選んでください。図鑑と検索結果に表示されます。')} ${tt('개인 공간은 사진과 함께 시·도 단위 지역만 공개됩니다.','Personal spaces show photos and a region only.','個人スペースは写真と地域のみ公開されます。')}</small>`
+ ${t==='personal'?`<span class="cat-heading">${tt('나의 식물 활동','MY PLANT ACTIVITY','私の植物活動')}</span><div class="pill-row cat-row">${PERSONAL_CATEGORIES().map(([k,label])=>`<button type="button" class="pill ${c===k?'active':''}" data-action="personal-category" data-cat="${k}" aria-pressed="${c===k}">${label}</button>`).join('')}</div><small class="account-desc">${cat?esc(cat[2]):tt('나를 소개할 카테고리를 골라 보세요. 도감과 검색 결과에 표시됩니다.','Pick a category that describes you. It appears in your dex and search results.','自分に合うカテゴリーを選んでください。図鑑と検索結果に表示されます。')} ${tt('개인 공간은 사진과 함께 시·도 단위 지역만 공개됩니다.','Personal spaces show photos and a region only.','個人スペースは写真と地域のみ公開されます。')}</small>`
  :`<small class="account-desc">${tt('공간 운영자는 매장·쇼룸, 온실·농장, 문화공간·전시, 연구·교육시설 카테고리로 공간을 등록하고 정확한 주소를 공개할 수 있습니다.','Operators register venues as Shop·Showroom, Greenhouse·Farm, Culture·Exhibition or Research·Education with an exact address.','運営者はショップ・ショールーム、温室・農園、文化施設・展示、研究・教育施設として正確な住所で登録できます。')}</small>`}</div>`;
 }
 async function setAccountType(type,category){
  if(!state.authClient||!state.user)return;
  if(state.beta10Missing)return toast(SQL10_NOTICE());
+ if(type==='personal'&&state.profile?.account_type==='operator'){const ops=state.places.filter(p=>p.owner_id===state.user.id&&p.kind!=='personal');if(ops.length)return switchToPersonalWithDeletion(ops);}
  const patch={updated_at:new Date().toISOString()};
  if(type)patch.account_type=type==='operator'?'operator':'personal';
  if(category!==undefined)patch.personal_category=category||null;
@@ -1462,8 +1453,8 @@ function myPlantsBody(){
  const places=state.places.filter(p=>p.owner_id===state.user?.id);
  if(!places.length)return `<p class="mini-muted">${tt('먼저 ‘나의 식물 공간’에서 공간을 등록하면 보유 식물을 추가할 수 있습니다.','Add a place under “My botanical places” first, then list its plants here.','先に「自分の植物スポット」で場所を登録すると、植物を追加できます。')}</p>`;
  const plants=state.placePlants.filter(x=>x.owner_id===state.user.id);
- const add=places.length===1?`<button type="button" class="primary-button wide" data-action="pp-add" data-place-id="${esc(places[0].id)}">＋ ${tt('보유 식물 등록','ADD A PLANT','植物を追加')}</button>`
-  :`<div class="pp-add-row"><select id="pp-place-select" aria-label="${esc(tt('식물을 등록할 공간','Place for the new plant','登録する場所'))}">${places.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select><button type="button" class="primary-button" data-action="pp-add-select">＋ ${tt('등록','ADD','追加')}</button></div>`;
+ // The form itself asks which place when there are two or more (BETA 12).
+ const add=`<button type="button" class="primary-button wide" data-action="pp-add" data-place-id="${esc(places[0].id)}">＋ ${tt('보유 식물 등록','ADD A PLANT','植物を追加')}</button>`;
  const groups=places.map(pl=>{const list=plants.filter(x=>x.place_id===pl.id);if(!list.length)return '';return `<h3 class="dex-group">${esc(pl.name)} <small>${esc(placeKind(pl.kind))} · ${list.length}</small></h3><div class="place-plant-list">${list.map(x=>placePlantCard(x,true)).join('')}</div>`;}).join('');
  return `${add}<div class="my-plants">${groups||`<p class="mini-muted">${tt('아직 등록한 보유 식물이 없습니다.','No plants listed yet.','まだ登録した植物はありません。')}</p>`}</div>`;
 }
@@ -1512,7 +1503,7 @@ async function photoFingerprint(d){
  catch{return `${d.length}-${d.slice(-48)}`;}
 }
 // ---------- form ----------
-const PHOTO_RATIO_NOTE=()=>tt('사진은 가로 4:3 비율로, 가운데를 기준으로 자동으로 잘려 저장됩니다.','Photos are automatically center-cropped to a 4:3 landscape ratio.','写真は横4:3の比率で、中央を基準に自動で切り取られます。');
+const PHOTO_RATIO_NOTE=()=>tt('가로 사진은 16:9, 세로 사진은 3:4 비율로 가운데를 기준으로 자동으로 잘려 저장됩니다.','Landscape photos are cropped to 16:9 and portrait photos to 3:4, from the centre.','横長の写真は16:9、縦長の写真は3:4で中央を基準に切り取られます。');
 function obsPhotoGrid(kind){
  const habitat=kind==='habitat',items=habitat?state.formHabitat:state.formPhotos,limit=habitat?HABITAT_PHOTO_LIMIT:PLANT_PHOTO_LIMIT;
  return items.map((x,i)=>{const src=isSafePhoto(x)?x:cachedSigned('field-photos',x);return `<div class="vp-thumb"><span class="vp-img" ${!src&&isPhotoPath(x)?`data-sign-bucket="field-photos" data-sign-path="${esc(x)}"`:''}>${src?`<img src="${esc(src)}" alt=""/>`:''}</span>${habitat?'':i===0?`<span class="vp-cover">${tt('대표','COVER','カバー')}</span>`:`<button type="button" class="vp-btn vp-make-cover" data-action="obs-photo-cover" data-kind="${kind}" data-index="${i}">${tt('대표로','Set cover','カバーに')}</button>`}<button type="button" class="vp-btn vp-remove" data-action="obs-photo-remove" data-kind="${kind}" data-index="${i}" aria-label="${esc(tt('사진 삭제','Remove photo','写真を削除'))}">✕</button></div>`;}).join('')
@@ -1562,6 +1553,7 @@ function photoSlider(items,bucket,recordId=''){
  return `<div class="photo-slider" data-record-id="${esc(recordId)}"><div class="pg-track">${items.map((it,i)=>{const src=isSafePhoto(it.x)?it.x:cachedSigned(bucket,it.x);return `<div class="pg-slide" data-action="slide-view" data-index="${i}" ${!src&&isPhotoPath(it.x)?`data-sign-bucket="${bucket}" data-sign-path="${esc(it.x)}"`:''}>${src?`<img src="${esc(src)}" alt=""/>`:''}</div>`;}).join('')}</div>${items.length>1?`<div class="pg-meta"><button type="button" class="pg-arrow" data-action="slide-prev" aria-label="${esc(tt('이전 사진','Previous photo','前の写真'))}">‹</button><span class="pg-label" data-labels="${esc(JSON.stringify(labels))}">${esc(labels[0])}</span><span class="pg-dots" aria-hidden="true">${items.map((_,i)=>`<i class="${i===0?'on':''}"></i>`).join('')}</span><button type="button" class="pg-arrow" data-action="slide-next" aria-label="${esc(tt('다음 사진','Next photo','次の写真'))}">›</button></div>`:labels[0]?`<div class="pg-meta single"><span class="pg-label">${esc(labels[0])}</span></div>`:''}</div>`;
 }
 function sliderIndexChanged(track){
+ fitSliderHeight(track);
  const slider=track.closest('.photo-slider');if(!slider)return;
  const step=track.clientWidth+8,idx=Math.max(0,Math.round(track.scrollLeft/Math.max(1,step)));
  const label=slider.querySelector('.pg-label');if(label?.dataset.labels){try{label.textContent=JSON.parse(label.dataset.labels)[idx]||'';}catch{}}
@@ -1577,11 +1569,439 @@ function observationGallery(r){
  return photoSlider(items,'field-photos',r.id);
 }
 
+// BETA 12 — countries (offline), discovery location display, grouped map pins, automatic online saving.
+const SQL12_NOTICE=()=>tt('먼저 Supabase에 BETA 12 SQL(supabase/beta12_sharing_expeditions.sql)을 적용하세요.','Apply the BETA 12 database SQL (supabase/beta12_sharing_expeditions.sql) first.','まずBETA 12のSQL（supabase/beta12_sharing_expeditions.sql）を適用してください。');
+const isBeta12SchemaError=e=>/field_private_details|country_code|expedition_id|expeditions|switch_to_personal_account|place_plants.*photo_paths|schema cache|could not find/i.test(e?.message||String(e||''));
+// ---------- countries ----------
+const GEO={countries:null,byCode:{},byName:new Map(),borders:null};
+async function loadCountries(){
+ if(GEO.countries)return GEO.countries;
+ try{const res=await fetch('./assets/geo/countries.json');GEO.countries=await res.json();}catch(e){console.warn('countries',e);GEO.countries=[];}
+ for(const c of GEO.countries){GEO.byCode[c.c]=c;for(const a of c.a||[])if(!GEO.byName.has(a))GEO.byName.set(a,c);}
+ return GEO.countries;
+}
+async function loadBorders(){
+ if(GEO.borders)return GEO.borders;
+ try{const res=await fetch('./assets/geo/borders.json');GEO.borders=await res.json();}catch(e){console.warn('borders',e);GEO.borders={};}
+ return GEO.borders;
+}
+const countryFromName=name=>{const n=txt(name).toLowerCase();return n?GEO.byName.get(n)||null:null;};
+const countryCenter=code=>{const c=GEO.byCode[code];return c?{latitude:c.ll[0],longitude:c.ll[1]}:null;};
+const countryLabel=code=>{const c=GEO.byCode[code];return c?(state.locale==='ko'?c.n[1]:state.locale==='ja'?c.n[2]:c.n[0]):'';};
+function inRing(x,y,r){let inside=false;for(let i=0,j=r.length-2;i<r.length;j=i,i+=2){const xi=r[i],yi=r[i+1],xj=r[j],yj=r[j+1];if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/((yj-yi)||1e-9)+xi))inside=!inside;}return inside;}
+// Detect the country of a point on this device (no coordinates leave the phone).
+async function detectCountryCode(lat,lon){
+ lat=Number(lat);lon=Number(lon);if(!Number.isFinite(lat)||!Number.isFinite(lon))return null;
+ await loadCountries();const borders=await loadBorders(),x=Math.round(lon*100),y=Math.round(lat*100);
+ for(const [code,rings] of Object.entries(borders))for(const r of rings)if(inRing(x,y,r))return code;
+ // Small islands are not in the simplified outlines: use the nearest country centre (within ~600 km).
+ let best=null,bestD=Infinity;
+ for(const c of GEO.countries){const d=geoMeters({latitude:lat,longitude:lon},{latitude:c.ll[0],longitude:c.ll[1]});if(d<bestD){bestD=d;best=c;}}
+ return best&&bestD<600000?best.c:null;
+}
+// Where other people see a record on maps. "Approximate" records sit on their country's centre.
+function publicPoint(record){
+ if(!record)return null;
+ const lat=Number(record.latitude),lon=Number(record.longitude),has=record.latitude!==null&&record.latitude!==undefined&&record.latitude!==''&&Number.isFinite(lat)&&Number.isFinite(lon);
+ if(record.privacy==='public')return has?{latitude:lat,longitude:lon}:null;
+ if(record.privacy==='coarse'){
+  const code=record.countryCode||countryFromName(record.country)?.c,c=code&&countryCenter(code);
+  if(c)return {...c,countryCenter:true};
+  return has?{latitude:Math.floor(lat)+.5,longitude:Math.floor(lon)+.5}:null;
+ }
+ return null;
+}
+// ---------- discovery location (detail + map preview) ----------
+function locationInfo(r){
+ const mine=!!r&&!r.isDemo&&canEdit(r),lat=Number(r?.latitude),lon=Number(r?.longitude);
+ const has=r&&r.latitude!==null&&r.latitude!==undefined&&r.latitude!==''&&Number.isFinite(lat)&&Number.isFinite(lon);
+ const place=[r?.locality,r?.country].filter(Boolean).join(' · ');
+ if(mine&&has)return {mode:'exact',point:{latitude:lat,longitude:lon},text:place||`${lat.toFixed(4)}, ${lon.toFixed(4)}`,mine:true,privacy:r.privacy};
+ if(r?.privacy==='public'&&has)return {mode:'exact',point:{latitude:lat,longitude:lon},text:place||`${lat.toFixed(4)}, ${lon.toFixed(4)}`};
+ if(r?.privacy==='coarse'){const code=r.countryCode||countryFromName(r.country)?.c;return {mode:'country',point:code?countryCenter(code):null,text:(code&&countryLabel(code))||r.country||tt('국가 미상','Country unknown','国不明')};}
+ return {mode:'hidden',mine};
+}
+const mineTag=()=>`<span class="tiny-tag mine-tag">${tt('나만 보임','Only me','自分のみ')}</span>`;
+function locationLine(r){
+ const i=locationInfo(r);
+ if(i.mode==='exact')return i.text;
+ if(i.mode==='country')return `${i.text} · ${tt('대략적인 지역','approximate','おおよその地域')}`;
+ return tt('위치 비공개','Location hidden','位置は非公開');
+}
+function locationSection(r){
+ const i=locationInfo(r),head=`<h2>${tt('발견 위치','DISCOVERY LOCATION','発見場所')}</h2>`;
+ if(i.mode==='exact')return `<div class="detail-section loc-section">${head}<div id="detail-loc-map" class="detail-loc-map" data-action="loc-open" role="button" aria-label="${esc(tt('지도에서 크게 보기','Open on the map','地図で大きく見る'))}"></div><p class="loc-text">${esc(i.text)} ${i.mine&&i.privacy!=='public'?mineTag():''}</p>${i.mine&&i.privacy==='coarse'?`<p class="mini-muted">${tt('다른 사람에게는 국가 중심으로만 표시됩니다.','Others only see the country centre.','他の人には国の中心のみ表示されます。')}</p>`:i.mine&&i.privacy==='private'?`<p class="mini-muted">${tt('다른 사람에게는 위치가 표시되지 않습니다.','Others cannot see the location.','他の人には位置が表示されません。')}</p>`:''}</div>`;
+ if(i.mode==='country')return `<div class="detail-section loc-section">${head}${i.point?`<div id="detail-loc-map" class="detail-loc-map" data-action="loc-open" role="button" aria-label="${esc(tt('지도에서 크게 보기','Open on the map','地図で大きく見る'))}"></div>`:''}<p class="loc-text">${esc(i.text)} · ${tt('대략적인 지역','approximate','おおよその地域')}</p><p class="mini-muted">${tt('국가 중심 표시 · 실제 발견 위치가 아닙니다.','Pin shows the country centre, not the actual spot.','国の中心を表示しています。実際の発見場所ではありません。')}</p></div>`;
+ return `<div class="detail-section loc-section">${head}<div class="loc-hidden">${i.mine?tt('위치를 기록하지 않았습니다.','No location recorded.','位置は記録されていません。'):tt('위치 비공개 · 발견자가 위치를 공개하지 않았습니다.','Location hidden · the finder chose not to share it.','位置は非公開 · 発見者が公開していません。')}</div></div>`;
+}
+function teardownDetailMap(){if(state.detailLocMap){state.detailLocMap.remove();state.detailLocMap=null;}}
+function mountDetailLocation(r){
+ teardownDetailMap();const el=$('#detail-loc-map',overlay),i=locationInfo(r);if(!el||!i.point)return;
+ if(typeof window.L==='undefined'){el.innerHTML=`<div class="map-unavailable">${tt('지도를 불러오지 못했습니다.','Map unavailable.','地図を読み込めません。')}</div>`;return;}
+ const m=window.L.map(el,{zoomControl:false,attributionControl:true,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,touchZoom:false,boxZoom:false,keyboard:false,tap:false}).setView([i.point.latitude,i.point.longitude],i.mode==='country'?4:12);
+ window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,noWrap:true,attribution:'&copy; OpenStreetMap contributors'}).addTo(m);
+ window.L.marker([i.point.latitude,i.point.longitude],{interactive:false,icon:window.L.divIcon({className:`picker-pin ${i.mode==='country'?'country-pin':''}`,html:'<span></span>',iconSize:[26,26],iconAnchor:[13,26]})}).addTo(m);
+ state.detailLocMap=m;state.detailLocRecord=r.id;safeResize(m);
+}
+function openLocationOnMap(){
+ const r=getRecord(state.detailLocRecord),i=r&&locationInfo(r);if(!i?.point)return;
+ const zoom=i.mode==='country'?5:14;closeDetail();state.fullMap=false;state.tab='map';
+ if(state.projection==='equal-earth'){state.detailMode=true;state.detailFocus=i.point;state.leafletView={key:'equal-earth-detail',latitude:i.point.latitude,longitude:i.point.longitude,zoom};}
+ else state.leafletView={key:'mercator',latitude:i.point.latitude,longitude:i.point.longitude,zoom};
+ render();
+}
+// ---------- grouped map pins ----------
+function mapPinGroups(){
+ const groups=new Map(),add=(lat,lon,item)=>{const key=`${Number(lat).toFixed(4)},${Number(lon).toFixed(4)}`;if(!groups.has(key))groups.set(key,{key,latitude:Number(lat),longitude:Number(lon),items:[]});groups.get(key).items.push(item);};
+ for(const r of mapRecords()){const p=publicPoint(r);if(p)add(p.latitude,p.longitude,{type:'record',r,country:!!p.countryCenter});}
+ for(const v of filteredPlaces())add(v.latitude,v.longitude,{type:'place',v});
+ state.mapGroups=Object.fromEntries([...groups].map(([k,g])=>[k,g]));
+ return [...groups.values()];
+}
+function selectGroup(key){state.selectedMap=null;state.selectedVenue=null;state.selectedGroup=key;const popup=$('#map-pin-popup');if(popup){popup.innerHTML=pinSummary();popup.classList.remove('hidden');translateUI(popup);hydrateSigned(popup).catch(console.warn);}}
+function groupSummary(g){
+ const rows=g.items.map(it=>{if(it.type==='place'){const v=it.v;return `<button type="button" class="group-row" data-action="place-detail" data-place-id="${esc(v.id)}"><span class="group-thumb place">⌂</span><span class="group-copy"><strong>${esc(v.name)}</strong><small>${esc(placeKind(v.kind))}</small></span><span aria-hidden="true">›</span></button>`;}
+  const r=it.r,src=photoSource(r);return `<button type="button" class="group-row" data-detail="${esc(r.id)}"><span class="group-thumb">${src?`<img src="${esc(src)}" alt="" loading="lazy"/>`:botanicalSvg}</span><span class="group-copy"><em>${esc(r.scientificName||tt('미동정 식물','Unidentified plant','未同定の植物'))}</em><small>${esc(fmt(r.observedAt))} · ${esc(translateText(STATUS[r.identificationStatus]||'미동정',state.locale))}</small></span><span aria-hidden="true">›</span></button>`;}).join('');
+ return `<div class="spot-card group-spot"><div class="spot-card-top"><span>${tt(`이 위치의 기록 ${g.items.length}개`,`${g.items.length} entries here`,`この場所の記録 ${g.items.length}件`)}</span><button type="button" data-action="close-pin" aria-label="${esc(tt('닫기','Close','閉じる'))}">✕</button></div><div class="group-list">${rows}</div>${g.items.some(it=>it.country)?`<p class="footnote">${tt('대략적인 위치로 공개된 기록은 국가 중심에 모여 표시됩니다.','Approximate records are gathered at the country centre.','おおよその位置の記録は国の中心にまとめて表示されます。')}</p>`:''}</div>`;
+}
+function groupPinSvg(g,x,y){
+ const n=g.items.length,places=g.items.every(it=>it.type==='place');
+ return `<g class="map-pin group-pin" data-group-key="${esc(g.key)}" role="button" tabindex="0" aria-label="${esc(tt(`이 위치의 기록 ${n}개`,`${n} entries here`,`この場所の記録 ${n}件`))}"><circle cx="${x}" cy="${y}" r="13" fill="${places?'#2f7158':'#202020'}" stroke="#fff" stroke-width="3"/><text x="${x}" y="${y+4}" text-anchor="middle" font-size="11" fill="#fff">${n>99?'99+':n}</text><circle cx="${x}" cy="${y}" r="20" fill="transparent"/></g>`;
+}
+// ---------- automatic online saving ----------
+const PRIVATE_DETAIL_KEYS=['locality','fieldNumber','collector','population','associatedSpecies','voucher','projectId','locationSource','countryCode','gpsAccuracy'];
+// When editing a synced record, fill owner-only fields from this device if the server copy lacks them.
+function editableRecord(id){
+ const r=getRecord(id);if(!r)return r;
+ const local=state.records.find(x=>x.id===id);if(!local||local===r)return r;
+ const merged={...r};for(const k of PRIVATE_DETAIL_KEYS){const cur=merged[k];if((cur===undefined||cur===null||cur==='')&&local[k]!==undefined&&local[k]!==null&&local[k]!=='')merged[k]=local[k];}
+ return merged;
+}
+function sharingSection(editing){
+ const pre=editing?(editing.hidden||(!editing.onlinePublished&&!editing.isCloud)?'private':'public'):'public';
+ const opt=(v,title,desc)=>`<label class="privacy-option"><input type="radio" name="visibility" value="${v}" ${pre===v?'checked':''}/><span><b>${title}</b><small>${desc}</small></span></label>`;
+ return `<div class="form-section share-section"><h2>06 / SHARING</h2><div class="privacy-group"><div class="privacy-group-title">${tt('기록 공개 범위','Who can see this record','記録の公開範囲')}</div>${opt('public',tt('공개','Shared','公開'),tt('베타 멤버의 피드·지도·도감에 표시됩니다.','Shown to beta members in the feed, map and dex.','ベータメンバーのフィード・地図・図鑑に表示されます。'))}${opt('private',tt('비공개 · 나만 보기','Private · only me','非公開 · 自分のみ'),tt('온라인에 백업되지만 다른 사람에게는 보이지 않습니다.','Backed up online but hidden from everyone else.','オンラインに保存されますが、他の人には表示されません。'))}</div><p class="footnote">${state.member?tt('저장하면 바로 온라인에 저장됩니다. 오프라인이면 인터넷이 연결될 때 자동으로 올라갑니다. 정확한 위치는 위의 ‘위치 공개 수준’을 따릅니다.','Saving uploads the record right away; offline records upload automatically once you are connected. The exact location follows the location privacy setting above.','保存するとすぐにオンラインに保存されます。オフラインの場合は接続時に自動でアップロードされます。正確な位置は上の位置公開設定に従います。'):tt('로그인한 승인 멤버는 저장할 때 온라인에도 자동으로 저장됩니다. 지금은 이 기기에만 저장됩니다.','Approved members are saved online automatically. For now this stays on this device.','承認済みメンバーは保存時に自動でオンライン保存されます。現在はこの端末にのみ保存されます。')}</p></div>`;
+}
+const localOnlyRecords=()=>state.records.filter(r=>!r.onlinePublished&&!r.isDemo);
+async function backupLocalRecords(){
+ if(!state.member||!state.user)return toast(tt('승인된 베타 계정으로 로그인해 주세요.','Sign in with an approved beta account.','承認済みのベータアカウントでログインしてください。'));
+ const list=localOnlyRecords();if(!list.length)return;
+ if(!confirm(tt(`기기에만 있는 기록 ${list.length}개를 비공개로 온라인에 백업할까요? 다른 사람에게는 보이지 않습니다.`,`Back up ${list.length} device-only records online as private?`,`端末のみの記録${list.length}件を非公開でオンラインにバックアップしますか？`)))return;
+ for(const r of list)await storeRecord({...r,onlinePublished:true,syncPending:true,hidden:true});
+ render();await syncPendingRecords();toast(tt('비공개로 온라인 백업을 시작했습니다.','Private online backup started.','非公開でバックアップを開始しました。'));
+}
+async function savePrivateDetails(r){
+ const row={observation_id:r.id,owner_id:state.user.id,locality:r.locality||null,field_number:r.fieldNumber||null,collector:r.collector||null,population:r.population||null,associated_species:r.associatedSpecies||null,voucher:r.voucher||null,location_source:r.locationSource||null,updated_at:new Date().toISOString()};
+ const {error}=await state.authClient.from('field_private_details').upsert(row,{onConflict:'observation_id'});
+ if(error)console.warn('Private details not saved (BETA 12 SQL?)',error.message);
+}
+// One-time per session: older "approximate" rows still carry a 1° grid point; replace it with the country code.
+async function migrateCoarseRows(){
+ if(state.coarseMigrated||!state.member||!state.authClient||!state.user)return;state.coarseMigrated=true;
+ const mine=state.sharedRecords.filter(r=>r.ownerId===state.user.id&&r.privacy==='coarse'&&r.serverHasCoords);
+ for(const r of mine){
+  const code=r.countryCode||await detectCountryCode(r.latitude,r.longitude);if(!code)continue;
+  const {error}=await state.authClient.from('field_observations').update({latitude:null,longitude:null,country_code:code}).eq('id',r.id).eq('owner_id',state.user.id);
+  if(error){console.warn('coarse migration',error.message);break;}
+  r.countryCode=code;r.serverHasCoords=false;
+ }
+}
+
+// BETA 12 — kept plants: up to 5 photos, place picker inside the form, plant detail slider.
+const PP_PHOTO_LIMIT=5;
+const placePlantPhotos=x=>{const list=(Array.isArray(x?.photo_paths)?x.photo_paths:[]).filter(isPhotoPath).slice(0,PP_PHOTO_LIMIT);return list.length?list:(isPhotoPath(x?.photo_path)?[x.photo_path]:[]);};
+function ppPhotoGrid(){
+ const items=state.ppPhotos||[];
+ return items.map((x,i)=>{const src=isSafePhoto(x)?x:cachedSigned('place-photos',x);return `<div class="vp-thumb"><span class="vp-img" ${!src&&isPhotoPath(x)?`data-sign-bucket="place-photos" data-sign-path="${esc(x)}"`:''}>${src?`<img src="${esc(src)}" alt=""/>`:''}</span>${i===0?`<span class="vp-cover">${tt('대표','COVER','カバー')}</span>`:`<button type="button" class="vp-btn vp-make-cover" data-action="pp-photo-cover" data-index="${i}">${tt('대표로','Set cover','カバーに')}</button>`}<button type="button" class="vp-btn vp-remove" data-action="pp-photo-remove" data-index="${i}" aria-label="${esc(tt('사진 삭제','Remove photo','写真を削除'))}">✕</button></div>`;}).join('')
+  +(items.length<PP_PHOTO_LIMIT?`<button type="button" class="vp-add" data-action="pp-photo-add"><b aria-hidden="true">＋</b><span>${tt('사진 추가','Add photos','写真を追加')}</span><small>${items.length}/${PP_PHOTO_LIMIT}</small></button>`:'');
+}
+function ppPhotoSection(){
+ return `<div class="form-section"><h2>01 / PHOTOGRAPH</h2><div class="form-field"><span>${tt('식물 사진 (최대 5장)','PLANT PHOTOS (UP TO 5)','植物の写真（最大5枚）')}</span><div id="pp-photo-grid" class="vp-grid">${ppPhotoGrid()}</div><small>${tt('첫 번째 사진이 대표 사진입니다.','The first photo is the cover.','最初の写真がカバーになります。')}</small></div><div class="small-actions"><button type="button" class="light-button" data-action="pp-gallery">▧ ${tt('앨범에서 선택','Choose from library','アルバムから選択')}</button><button type="button" class="light-button" data-action="pp-camera">◉ ${tt('사진 촬영','Take photo','撮影')}</button></div><input id="pp-gallery-input" class="hidden-input" type="file" accept="image/*" multiple/><input id="pp-camera-input" class="hidden-input" type="file" accept="image/*" capture="environment"/><p class="footnote photo-ratio-note">${PHOTO_RATIO_NOTE()}</p></div>`;
+}
+function refreshPpPhotos(){const g=$('#pp-photo-grid');if(!g)return;g.innerHTML=ppPhotoGrid();translateUI(g);hydrateSigned(g).catch(console.warn);}
+async function addPpPhotos(fileList){
+ const files=[...(fileList||[])];if(!files.length)return;
+ const items=state.ppPhotos||(state.ppPhotos=[]),room=PP_PHOTO_LIMIT-items.length;
+ if(room<=0)return toast(tt('식물 사진은 최대 5장입니다.','Up to 5 plant photos.','植物の写真は最大5枚です。'));
+ if(files.length>room)toast(tt(`최대 5장까지라 ${room}장만 추가했습니다.`,`Only ${room} added (limit 5).`,`上限5枚のため${room}枚のみ追加しました。`));
+ for(const f of files.slice(0,room)){try{items.push(await compressPhoto(f));refreshPpPhotos();}catch(e){toast(e.message||String(e));}}
+}
+// When the owner has two or more places, the plant form asks which place it belongs to.
+function ppPlaceField(placeId){
+ const mine=state.places.filter(p=>p.owner_id===state.user?.id);
+ if(mine.length<2)return `<input type="hidden" name="placeId" value="${esc(placeId)}"/>`;
+ return `<label class="form-field"><span>${tt('어느 공간의 식물인가요?','Which place is this plant in?','どの場所の植物ですか？')} *</span><select name="placeId">${mine.map(p=>`<option value="${esc(p.id)}" ${p.id===placeId?'selected':''}>${esc(p.name)} · ${esc(placeKind(p.kind))}</option>`).join('')}</select></label>`;
+}
+function plantDetail(id){
+ const x=state.placePlants.find(p=>p.id===id);if(!x)return;teardownDexMap();
+ const place=state.places.find(p=>p.id===x.place_id),mine=x.owner_id===state.user?.id,paths=placePlantPhotos(x);
+ const gallery=paths.length?photoSlider(paths.map((p,i)=>({x:p,label:`${tt('사진','Photo','写真')} ${i+1}/${paths.length}`})),'place-photos'):'<div class="venue-detail-heading">✿</div>';
+ overlay.innerHTML=`<div class="detail-body"><div class="detail-header"><span class="eyebrow">PLANT / ${esc(place?.name||'')}</span><span class="header-actions"><button type="button" class="close" data-action="place-detail" data-place-id="${esc(x.place_id)}">← ${tt('공간','PLACE','場所')}</button><button type="button" class="close" data-action="close">✕ ${tt('닫기','CLOSE','閉じる')}</button></span></div>${gallery}
+ <h1>${esc(x.scientific_name)}</h1><p class="lead">${esc(PP_STATUS()[x.status]||x.status)}${x.identification_status==='verified'?` · ✓ ${tt('동정 완료','Identified','同定済み')}`:''}</p>
+ <div class="detail-section"><h2>${tt('분양 정보','DETAILS','詳細')}</h2>${recordRow(tt('원산지 · 자생지','Origin / habitat','原産地・自生地'),x.origin)}${recordRow(tt('적정 온도','Temperature','適温'),rangeText(x.temp_min,x.temp_max,'°C'))}${recordRow(tt('적정 습도','Humidity','適正湿度'),rangeText(x.humidity_min,x.humidity_max,'%'))}${recordRow(tt('공간','Place','場所'),place?.name)}</div>
+ ${x.notes?`<div class="detail-section"><h2>${tt('메모','NOTES','メモ')}</h2><p class="long-text">${esc(x.notes)}</p></div>`:''}
+ ${mine?`<button type="button" class="primary-button wide" data-action="pp-edit" data-plant-id="${esc(x.id)}">${tt('이 식물 수정','EDIT PLANT','植物を編集')}</button>`:place?`<div class="detail-author">${authorChip(place.owner_id)}</div>`:''}</div>`;
+ overlay.classList.remove('hidden');overlay.setAttribute('aria-hidden','false');overlay.scrollTop=0;translateUI(overlay);hydrateSigned(overlay).catch(console.warn);
+}
+async function uploadPlantPhotos(id,existing){
+ const out=[],uploaded=[];
+ for(const [i,x] of (state.ppPhotos||[]).entries()){
+  if(isPhotoPath(x)){out.push(x);continue;}
+  const path=`${state.user.id}/${id}-${i}-${Date.now().toString(36)}.jpg`,blob=await (await fetch(x)).blob();
+  const {error}=await state.authClient.storage.from('place-photos').upload(path,blob,{contentType:'image/jpeg',upsert:false});
+  if(error){if(uploaded.length)await state.authClient.storage.from('place-photos').remove(uploaded).catch(()=>{});throw error;}
+  uploaded.push(path);out.push(path);
+ }
+ const stale=existing?placePlantPhotos(existing).filter(p=>!out.includes(p)):[];
+ return {paths:out,uploaded,stale};
+}
+// ---------- account switch: operator → personal deletes operator places (one database transaction) ----------
+async function switchToPersonalWithDeletion(ops){
+ const plantCount=state.placePlants.filter(x=>ops.some(o=>o.id===x.place_id)).length;
+ const msg=tt(`개인 계정으로 바꾸면 운영 공간 ${ops.length}곳과 그 보유 식물 ${plantCount}개, 대표 사진이 모두 삭제되며 복구할 수 없습니다.\n\n삭제될 공간: ${ops.map(o=>o.name).join(', ')}\n\n삭제하고 개인으로 전환할까요?`,
+  `Switching to a personal account deletes your ${ops.length} venue(s), their ${plantCount} plant listing(s) and photos. This cannot be undone.\n\nVenues: ${ops.map(o=>o.name).join(', ')}\n\nDelete and switch?`,
+  `個人アカウントに切り替えると、運営スペース${ops.length}件とその植物${plantCount}件、写真がすべて削除され、元に戻せません。\n\n削除されるスペース：${ops.map(o=>o.name).join('、')}\n\n削除して切り替えますか？`);
+ if(!confirm(msg))return;
+ const {data,error}=await state.authClient.rpc('switch_to_personal_account');
+ if(error)return toast(isBeta12SchemaError(error)?SQL12_NOTICE():tt('전환하지 못했습니다. 아무것도 삭제되지 않았습니다: ','Nothing was changed: ','変更されませんでした：')+error.message);
+ const paths=(data||[]).filter(Boolean);
+ if(paths.length)await state.authClient.storage.from('place-photos').remove(paths).catch(console.warn);
+ await readProfile();await loadCommunity();state.venuePhotosFor=null;state.editingVenueId=null;rerenderKeepScroll();
+ toast(tt('운영 공간을 삭제하고 개인 계정으로 바꿨습니다.','Venues deleted. Switched to a personal account.','運営スペースを削除し、個人アカウントに切り替えました。'));
+}
+// ---------- adaptive slider height ----------
+function fitSliderHeight(track){
+ const slides=[...track.querySelectorAll('.pg-slide')];if(!slides.length)return;
+ const step=track.clientWidth+8,idx=Math.max(0,Math.min(slides.length-1,Math.round(track.scrollLeft/Math.max(1,step))));
+ const h=slides[idx].offsetHeight;if(h)track.style.height=`${h}px`;
+}
+
+// BETA 12 — expeditions: start / waypoints / end editor, delete, public route + optional public GPS track.
+const blankStop=role=>({id:'STP-'+newUuid(),role,name:'',latitude:null,longitude:null,arrivalDate:'',departureDate:'',note:'',address:''});
+const stopHasCoords=s=>s&&s.latitude!==null&&s.latitude!==''&&s.latitude!==undefined&&Number.isFinite(Number(s.latitude))&&Number.isFinite(Number(s.longitude));
+function newExpEditor(p){
+ if(!p)return {id:null,name:'',country:'',locality:'',start:blankStop('start'),waypoints:[],end:blankStop('end'),roundTrip:false,active:null,searchIdx:null,results:[],fitted:false};
+ const stops=routeStopsFor(p).map(s=>({...blankStop(s.role||''),...s})),hasEnd=p.hasEnd??stops.length>1;
+ return {id:p.id,name:p.name,country:p.country||'',locality:p.locality||'',start:stops[0]||blankStop('start'),waypoints:stops.slice(1,hasEnd?-1:undefined),end:hasEnd&&stops.length>1?stops[stops.length-1]:blankStop('end'),roundTrip:!!p.roundTrip,active:null,searchIdx:null,results:[],fitted:false};
+}
+const expStops=ed=>[ed.start,...ed.waypoints,ed.end];
+const expRole=(ed,i)=>i===0?'start':i===ed.waypoints.length+1?'end':'waypoint';
+function expStopCard(ed,i){
+ const s=expStops(ed)[i],role=expRole(ed,i),wp=role==='waypoint',round=role==='end'&&ed.roundTrip;
+ const badge=role==='start'?'S':role==='end'?'E':String(i),title=role==='start'?tt('탐사 시작 지점','Start point','出発地点'):role==='end'?tt('탐사 종료 지점','End point','終了地点'):tt(`경유지 ${i}`,`Waypoint ${i}`,`経由地 ${i}`);
+ const loc=round?tt('시작 지점과 같음 (왕복)','Same as the start (round trip)','出発地点と同じ（往復）'):stopHasCoords(s)?`${Number(s.latitude).toFixed(5)}, ${Number(s.longitude).toFixed(5)}${s.address?` · ${s.address}`:''}`:role==='end'?tt('선택 사항 · 비워 두면 나중에 추가할 수 있어요','Optional · you can add it later','任意 · 後で追加できます'):tt('위치를 정해 주세요','Set a location','位置を設定してください');
+ const search=ed.searchIdx===i?`<div class="address-search-row exp-search"><input id="exp-search-q" type="search" enterkeyhint="search" maxlength="120" placeholder="${esc(tt('공항, 숙소, 국립공원 이름 등','Airport, lodge, national park…','空港、宿、国立公園など'))}"/><button type="button" class="light-button" data-action="exp-search" data-index="${i}">${tt('검색','SEARCH','検索')}</button></div><div class="address-results">${(ed.results||[]).map((x,k)=>`<button type="button" class="address-result" data-action="exp-search-pick" data-index="${i}" data-r="${k}">${esc(x.label)}</button>`).join('')}</div>`:'';
+ return `<div class="exp-stop ${ed.active===i?'picking':''} ${role}" data-stop-index="${i}"><div class="exp-stop-head"><span class="exp-badge ${role}">${badge}</span><strong>${title}</strong>${wp?`<span class="exp-wp-tools"><button type="button" class="route-mini" data-action="exp-wp-up" data-index="${i}" ${i===1?'disabled':''} aria-label="${esc(tt('위로','Move up','上へ'))}">↑</button><button type="button" class="route-mini" data-action="exp-wp-down" data-index="${i}" ${i===ed.waypoints.length?'disabled':''} aria-label="${esc(tt('아래로','Move down','下へ'))}">↓</button><button type="button" class="route-mini" data-action="exp-wp-remove" data-index="${i}" aria-label="${esc(tt('경유지 삭제','Remove waypoint','経由地を削除'))}">✕</button></span>`:''}</div>
+ ${role==='end'?`<label class="exp-roundtrip"><input type="checkbox" id="exp-roundtrip" ${ed.roundTrip?'checked':''}/> ${tt('시작 지점과 같음 (왕복)','Same as the start (round trip)','出発地点と同じ（往復）')}</label>`:''}
+ ${round?'':`<input class="exp-stop-name" data-stop-field="name" data-index="${i}" maxlength="90" placeholder="${esc(tt('장소 이름 (예: 쿠알라룸푸르 공항)','Place name (e.g. Kuala Lumpur airport)','地点名（例：クアラルンプール空港）'))}" value="${esc(s.name||'')}"/>`}
+ <p class="exp-stop-loc ${stopHasCoords(s)||round?'':'empty'}">${esc(loc)}</p>
+ ${round?'':`<div class="exp-stop-tools"><button type="button" class="light-button" data-action="exp-search-open" data-index="${i}">⌕ ${tt('주소 검색','Search','住所検索')}</button><button type="button" class="light-button" data-action="exp-gps" data-index="${i}">◎ ${tt('현재 위치','My location','現在地')}</button><button type="button" class="light-button ${ed.active===i?'on':''}" data-action="exp-pin" data-index="${i}">⌖ ${ed.active===i?tt('지도를 누르세요','Tap the map','地図をタップ'):tt('지도 핀','Map pin','地図ピン')}</button></div>${search}`}
+ <details class="exp-more"><summary>${tt('날짜 · 메모','Dates · notes','日付・メモ')}</summary><div class="two-col dt-row"><label class="form-field"><span>${tt('도착 / 머문 시작 날짜','Arrival / start date','到着・滞在開始日')}</span><input type="date" data-stop-field="arrivalDate" data-index="${i}" value="${esc(s.arrivalDate||'')}"/></label><label class="form-field"><span>${tt('출발 / 머문 종료 날짜','Departure / end date','出発・滞在終了日')}</span><input type="date" data-stop-field="departureDate" data-index="${i}" value="${esc(s.departureDate||'')}"/></label></div><label class="form-field"><span>${tt('현장 메모 / 이동 수단','Notes / transport','メモ・移動手段')}</span><textarea data-stop-field="note" data-index="${i}" maxlength="1000" rows="2">${esc(s.note||'')}</textarea></label></details></div>`;
+}
+function expEditorBody(){
+ const ed=state.expEditor;if(!ed)return '';
+ const n=ed.waypoints.length;
+ return `<label class="form-field"><span>${tt('탐사 이름','EXPEDITION NAME','探査名')} *</span><input id="exp-name" maxlength="90" placeholder="${esc(tt("예: Fraser's Hill 2026","e.g. Fraser's Hill 2026","例：Fraser's Hill 2026"))}" value="${esc(ed.name)}"/></label>
+ ${expStopCard(ed,0)}${ed.waypoints.map((_,k)=>expStopCard(ed,k+1)).join('')}
+ <button type="button" class="light-button wide exp-add-wp" data-action="exp-add-wp">＋ ${tt('경유지 추가','Add a waypoint','経由地を追加')}</button>
+ ${expStopCard(ed,n+1)}
+ <button type="button" class="primary-button wide" data-action="exp-save">${ed.id?tt('경로 변경 사항 저장','SAVE ROUTE','ルートを保存'):tt('탐사 만들기','CREATE EXPEDITION','探査を作成')}</button>${ed.id?'':`<button type="button" class="light-button wide" data-action="exp-cancel">${tt('취소','CANCEL','キャンセル')}</button>`}`;
+}
+function renderExpEditor(){const b=$('#exp-editor-body');if(!b)return;b.innerHTML=expEditorBody();translateUI(b);updateExpEditorMap();}
+function expeditionCreateScreen(){
+ if(!state.expEditor||state.expEditor.id)state.expEditor=newExpEditor(null);
+ return `<section class="page expedition-route-page"><div class="eyebrow">NEW EXPEDITION</div><button class="text-button route-back" data-action="exp-cancel" type="button">← ${tt('PROFILE로 돌아가기','Back to PROFILE','PROFILEに戻る')}</button><h1>${tt('새 탐사 만들기','New expedition','新しい探査')}</h1><p class="lead">${tt('시작 지점과 종료 지점을 정하고, 필요하면 경유지를 추가하세요. 각 지점은 주소 검색, 현재 위치, 지도 핀으로 정할 수 있습니다.','Set a start and end point and add waypoints if needed. Use search, your location or a map pin for each.','出発地点と終了地点を決め、必要なら経由地を追加します。各地点は住所検索・現在地・地図ピンで設定できます。')}</p>
+ <div class="route-map-wrapper"><div id="exp-editor-map" class="exp-editor-map" aria-label="${esc(tt('탐사 경로 지도','Expedition route map','探査ルート地図'))}"></div></div><div id="exp-editor-body" class="exp-editor">${expEditorBody()}</div>
+ <div class="info">${tt('탐사 정보는 기본적으로 비공개이며 이 기기에만 저장됩니다. 만든 뒤 탐사 설정에서 공개로 바꿀 수 있습니다.','Expeditions are private and stored on this device by default. You can make one public later in its settings.','探査は既定で非公開で、この端末にのみ保存されます。作成後に設定で公開できます。')}</div></section>`;
+}
+function expSettingsCard(p){
+ const sw=(on,action,disabled)=>`<button type="button" class="switch ${on?'on':''}" role="switch" aria-checked="${on}" data-action="${action}" ${disabled?'disabled':''}><span></span></button>`;
+ return `<details class="exp-settings" ${state.expSettingsOpen?'open':''}><summary>⚙ ${tt('탐사 공개 설정','Sharing settings','公開設定')} <span class="tiny-tag">${p.isPublic?tt('공개','PUBLIC','公開'):tt('비공개','PRIVATE','非公開')}</span></summary>
+ <div class="exp-setting-row"><span><b>${tt('탐사 경로 공개','Share the route','ルートを公開')}</b><small>${tt('시작·경유지·종료 지점과 지점별 메모를 베타 멤버에게 공개합니다.','Shows the start, waypoints, end and their notes to beta members.','出発・経由・終了地点とメモをベータメンバーに公開します。')}</small></span>${sw(!!p.isPublic,'exp-toggle-public')}</div>
+ <div class="exp-setting-row ${p.isPublic?'':'disabled'}"><span><b>${tt('GPS 이동 궤적 공개','Share the GPS track','GPS軌跡を公開')}</b><small>${tt('실제로 이동한 경로를 함께 공개합니다. 탐사 경로를 공개해야 켤 수 있습니다.','Also shows the path you actually walked. Requires a public route.','実際に移動した経路も公開します。ルートの公開が必要です。')}</small></span>${sw(!!p.trackPublic,'exp-toggle-track',!p.isPublic)}</div>
+ <p class="mini-muted">${tt('기본은 모두 비공개입니다. 비공개로 되돌리면 서버에서도 삭제됩니다.','Both are private by default. Turning them off removes them from the server.','既定は非公開です。非公開に戻すとサーバーからも削除されます。')}</p></details>`;
+}
+function expeditionRouteScreen(){
+ const p=state.projects.find(x=>x.id===state.activeExpeditionId);
+ if(!p){state.activeExpeditionId=null;return fieldScreen();}
+ if(!state.expEditor||state.expEditor.id!==p.id)state.expEditor=newExpEditor(p);
+ const track=routeTrackFor(p),linked=state.records.filter(r=>r.projectId===p.id).length;
+ return `<section class="page expedition-route-page"><div class="eyebrow">EXPEDITION / TRAVEL LOG</div><button class="text-button route-back" data-action="route-close" type="button">← ${tt('PROFILE로 돌아가기','Back to PROFILE','PROFILEに戻る')}</button><h1>${esc(p.name)}</h1><p class="lead">${esc([p.country,p.locality].filter(Boolean).join(' · ')||tt('지역 미설정','No area set','地域未設定'))} · ${tt(`관찰 기록 ${linked}개`,`${linked} observations`,`観察記録 ${linked}件`)}</p>
+ ${expSettingsCard(p)}
+ <div class="route-map-wrapper"><div id="exp-editor-map" class="exp-editor-map" aria-label="${esc(tt('탐사 경로 지도','Expedition route map','探査ルート地図'))}"></div><div class="route-map-caption">${tt('S 시작 · 숫자 경유지 · E 종료 · 점선: 방문 순서 · 실선: 실제 GPS 궤적','S start · numbers waypoints · E end · dashed: visit order · solid: GPS track','S 出発 · 数字 経由地 · E 終了 · 点線：訪問順 · 実線：GPS軌跡')}</div></div>
+ <div id="exp-editor-body" class="exp-editor">${expEditorBody()}</div>
+ <div class="small-actions exp-actions"><button class="light-button" type="button" data-action="project-use" data-project-id="${esc(p.id)}">✿ ${tt('이 탐사에서 식물 기록','Record a plant here','この探査で植物を記録')}</button></div>
+ <div class="section-heading"><h2>ACTUAL GPS TRACK</h2><span>FOREGROUND ONLY</span></div><p class="mini-muted">탐사 중 앱 화면을 켜둔 상태에서 실제 GPS 이동 궤적을 기록할 수 있어요. 다른 앱으로 이동하거나 화면이 꺼지면 iPhone PWA에서 지속 기록이 보장되지 않아요.</p><div class="small-actions"><button class="light-button" type="button" data-action="route-track-start" ${state.routeTrackingId!==null?'disabled':''}>● GPS 기록 시작</button><button class="light-button" type="button" data-action="route-track-stop" ${state.routeTrackingId===null?'disabled':''}>■ 기록 종료</button></div><p class="draft-status">${state.routeTrackingId!==null?'GPS 기록 중 · 앱을 열린 상태로 유지해 주세요.':tt(`저장된 실제 GPS 위치: ${track.length}개`,`Saved GPS points: ${track.length}`,`保存したGPS地点：${track.length}件`)} <span class="route-tracking-count"></span> · 세부 지형도는 온라인 연결 필요</p><button type="button" class="light-button wide" data-action="route-export-gpx">↓ GPX 경로 내보내기</button><p class="footnote">${p.isPublic?tt('이 탐사는 공개 중입니다. 공개 설정에서 언제든 비공개로 바꿀 수 있습니다.','This expedition is public. You can make it private again in its settings.','この探査は公開中です。設定でいつでも非公開に戻せます。'):'GPS 이동 기록과 일정 기록은 자동 공개되지 않으며, 백업 파일에 포함되므로 외부 공유에 주의해 주세요.'}</p>
+ <button type="button" class="light-button wide detail-delete" data-action="exp-delete" data-project-id="${esc(p.id)}">${tt('이 탐사 삭제','Delete this expedition','この探査を削除')}</button></section>`;
+}
+// ---------- editor map ----------
+function mountExpEditorMap(){
+ const el=$('#exp-editor-map');if(!el)return;
+ if(state.routeMap){state.routeMap.remove();state.routeMap=null;}
+ if(typeof window.L==='undefined'){el.innerHTML=`<p class="map-unavailable">${tt('지도를 불러올 수 없습니다. 현재 위치와 주소 검색으로 지점을 정할 수 있어요.','Map unavailable. You can still use your location or search.','地図を読み込めません。現在地や検索で地点を設定できます。')}</p>`;return;}
+ const m=window.L.map(el,{zoomControl:false,attributionControl:true,maxZoom:19,minZoom:2,maxBounds:[[-85,-180],[85,180]],maxBoundsViscosity:1}).setView([15,105],3);
+ window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,noWrap:true,attribution:'&copy; OpenStreetMap contributors'}).addTo(m);
+ window.L.control.zoom({position:'topright'}).addTo(m);
+ m.on('click',e=>{const ed=state.expEditor;if(!ed)return;if(ed.active===null){toast(tt('먼저 지점의 ‘지도 핀’ 버튼을 누르세요.','Tap “Map pin” on a point first.','先に地点の「地図ピン」を押してください。'));return;}setExpStopLocation(ed.active,e.latlng.lat,e.latlng.lng,'');ed.active=null;renderExpEditor();});
+ state.routeMap=m;state.expLayer=window.L.layerGroup().addTo(m);if(state.expEditor)state.expEditor.fitted=false;
+ safeResize(m);updateExpEditorMap();
+}
+function updateExpEditorMap(){
+ const m=state.routeMap,ed=state.expEditor;if(!m||!ed||!state.expLayer)return;
+ state.expLayer.clearLayers();const pts=[],bounds=[];
+ expStops(ed).forEach((s,i)=>{const role=expRole(ed,i);if(role==='end'&&ed.roundTrip)return;if(!stopHasCoords(s))return;
+  const ll=[Number(s.latitude),Number(s.longitude)];pts.push(ll);bounds.push(ll);
+  const mk=window.L.marker(ll,{draggable:true,icon:window.L.divIcon({className:`route-pin exp-pin ${role}`,html:`<span>${role==='start'?'S':role==='end'?'E':i}</span>`,iconSize:[28,28],iconAnchor:[14,14]})}).addTo(state.expLayer);
+  mk.on('dragend',()=>{const p=mk.getLatLng();setExpStopLocation(i,p.lat,p.lng,'');renderExpEditor();});});
+ if(ed.roundTrip&&stopHasCoords(ed.start))pts.push([Number(ed.start.latitude),Number(ed.start.longitude)]);
+ if(pts.length>1)window.L.polyline(pts,{color:'#333',weight:3,opacity:.85,dashArray:'6 6'}).addTo(state.expLayer);
+ const p=state.projects.find(x=>x.id===ed.id),trail=p?routeTrackFor(p).filter(routeCoords):[];
+ if(trail.length>1){const line=window.L.polyline(trail.map(t=>[t.latitude,t.longitude]),{color:'#2b795b',weight:3,opacity:.9}).addTo(state.expLayer);bounds.push(...line.getLatLngs());}
+ if(!ed.fitted&&bounds.length){ed.fitted=true;if(bounds.length>1)m.fitBounds(bounds,{padding:[28,28],maxZoom:14});else m.setView(bounds[0],12);}
+}
+function setExpStopLocation(i,lat,lon,address){
+ const ed=state.expEditor,s=expStops(ed)[i];if(!s)return;
+ s.latitude=Math.round(lat*1e6)/1e6;s.longitude=Math.round(((lon+540)%360-180)*1e6)/1e6;s.address=address||'';
+ if(state.routeMap)state.routeMap.panTo([s.latitude,s.longitude]);
+}
+async function expSearch(i){
+ const ed=state.expEditor,q=txt($('#exp-search-q')?.value);if(q.length<2)return toast(tt('검색할 장소를 2글자 이상 입력하세요.','Enter at least 2 characters.','2文字以上入力してください。'));
+ if(!navigator.onLine)return toast(tt('주소 검색에는 인터넷 연결이 필요합니다.','Search needs an internet connection.','検索にはインターネット接続が必要です。'));
+ const wait=1100-(Date.now()-state.lastGeocode);if(wait>0)await new Promise(r=>setTimeout(r,wait));state.lastGeocode=Date.now();
+ try{
+  const res=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&accept-language=${encodeURIComponent(state.locale)}&q=${encodeURIComponent(q)}`,{headers:{Accept:'application/json'}});if(!res.ok)throw Error(`HTTP ${res.status}`);
+  ed.results=(await res.json()).filter(x=>Number.isFinite(Number(x.lat))).map(x=>{const a=x.address||{};return {lat:Number(x.lat),lon:Number(x.lon),label:formatAddress(x),name:x.name||'',country:a.country||'',locality:[a.city||a.town||a.village||a.county||a.state,a.borough||a.suburb].filter(Boolean).join(' ')};});
+  if(!ed.results.length)toast(tt('검색 결과가 없습니다.','No results.','結果がありません。'));
+ }catch(e){ed.results=[];toast(tt('검색에 실패했습니다. 현재 위치나 지도 핀을 사용해 주세요.','Search failed. Use your location or a map pin.','検索に失敗しました。現在地や地図ピンを使ってください。'));}
+ renderExpEditor();const input=$('#exp-search-q');if(input)input.value=q;
+}
+function expPickResult(i,k){
+ const ed=state.expEditor,x=ed.results?.[k],s=expStops(ed)[i];if(!x||!s)return;
+ setExpStopLocation(i,x.lat,x.lon,x.label);if(!txt(s.name))s.name=x.name||(state.locale==='en'?x.label.split(',').slice(0,2).join(',').trim():x.label.split(' ').slice(-2).join(' '))||x.label;
+ if(i===0){if(!ed.country)ed.country=x.country;if(!ed.locality)ed.locality=x.locality;}
+ ed.searchIdx=null;ed.results=[];ed.fitted=false;renderExpEditor();
+}
+function expUseGPS(i){
+ if(!navigator.geolocation)return toast(tt('이 기기에서는 GPS를 사용할 수 없습니다.','GPS is not available.','GPSを使用できません。'));
+ navigator.geolocation.getCurrentPosition(({coords})=>{const ed=state.expEditor,s=expStops(ed)[i];if(!s)return;setExpStopLocation(i,coords.latitude,coords.longitude,'');if(!txt(s.name))s.name=tt('현재 위치','Current location','現在地');ed.fitted=false;renderExpEditor();toast(tt('현재 위치로 지정했어요.','Set to your current location.','現在地に設定しました。'));},()=>toast(tt('위치 권한과 HTTPS 연결을 확인해 주세요.','Check location permission.','位置情報の許可を確認してください。')),{enableHighAccuracy:true,timeout:20000});
+}
+function compileExpStops(ed){
+ const norm=(s,role,fallback)=>({id:s.id||'STP-'+newUuid(),role,name:txt(s.name)||fallback,latitude:Number(s.latitude),longitude:Number(s.longitude),arrivalDate:s.arrivalDate||'',departureDate:s.departureDate||'',note:txt(s.note),address:s.address||''});
+ if(!stopHasCoords(ed.start))throw Error(tt('탐사 시작 지점의 위치를 정해 주세요.','Set the start point location.','出発地点の位置を設定してください。'));
+ const out=[norm(ed.start,'start',tt('시작 지점','Start','出発地点'))];
+ ed.waypoints.forEach((w,k)=>{if(!stopHasCoords(w))throw Error(tt(`경유지 ${k+1}의 위치를 정해 주세요.`,`Set a location for waypoint ${k+1}.`,`経由地${k+1}の位置を設定してください。`));out.push(norm(w,'waypoint',tt(`경유지 ${k+1}`,`Waypoint ${k+1}`,`経由地${k+1}`)));});
+ if(ed.roundTrip)out.push({...norm(ed.start,'end',''),id:ed.end.id,name:txt(ed.end.name)||txt(ed.start.name)||tt('종료 지점','End','終了地点'),arrivalDate:ed.end.arrivalDate||'',departureDate:ed.end.departureDate||'',note:txt(ed.end.note)});
+ else if(stopHasCoords(ed.end))out.push(norm(ed.end,'end',tt('종료 지점','End','終了地点')));
+ for(const s of out)if(s.arrivalDate&&s.departureDate&&s.departureDate<s.arrivalDate)throw Error(tt(`‘${s.name}’의 출발 날짜가 도착 날짜보다 빠릅니다.`,`“${s.name}”: departure is before arrival.`,`「${s.name}」の出発日が到着日より前です。`));
+ return {stops:out,hasEnd:ed.roundTrip||stopHasCoords(ed.end)};
+}
+async function saveExpEditor(){
+ const ed=state.expEditor;if(!ed)return;
+ const name=txt(ed.name);if(!name)return toast(tt('탐사 이름을 입력해 주세요.','Enter an expedition name.','探査名を入力してください。'));
+ let compiled;try{compiled=compileExpStops(ed);}catch(e){return toast(e.message);}
+ const fields={name,country:ed.country||'',locality:ed.locality||'',routeStops:compiled.stops,hasEnd:compiled.hasEnd,roundTrip:ed.roundTrip};
+ if(!ed.id){
+  const p={id:'EXP-'+Date.now(),createdAt:new Date().toISOString(),routeTrack:[],isPublic:false,trackPublic:false,...fields};
+  await namedStore('expeditions','readwrite',s=>s.put(p));await loadExtras();
+  state.expeditionCreate=false;state.activeExpeditionId=p.id;state.expEditor=newExpEditor(p);render();
+  return toast(tt('탐사를 만들었습니다.','Expedition created.','探査を作成しました。'));
+ }
+ await updateExpedition(ed.id,fields);const p=state.projects.find(x=>x.id===ed.id);state.expEditor=newExpEditor(p);render();
+ if(p?.isPublic)await syncExpeditionPublic(p).catch(e=>toast(e.message||String(e)));
+ toast(tt('탐사 경로를 저장했습니다.','Route saved.','ルートを保存しました。'));
+}
+// ---------- delete ----------
+async function deleteExpedition(id){
+ const p=state.projects.find(x=>x.id===id);if(!p)return;
+ const linked=state.records.filter(r=>r.projectId===id);
+ if(p.isPublic&&!navigator.onLine)return toast(tt('공개 중인 탐사는 인터넷에 연결된 상태에서 삭제할 수 있습니다.','Connect to the internet to delete a public expedition.','公開中の探査はオンラインで削除してください。'));
+ if(!confirm(tt(`‘${p.name}’ 탐사를 삭제할까요? 이동 경로, 일정 지점, GPS 기록이 함께 삭제되며 복구할 수 없습니다.\n\n이 탐사에 연결된 관찰 기록 ${linked.length}개는 삭제되지 않고 ‘프로젝트 없음’으로 남습니다.`,`Delete “${p.name}”? Its route, stops and GPS track will be deleted permanently.\n\n${linked.length} linked observation(s) will be kept without an expedition.`,`「${p.name}」を削除しますか？ルート・地点・GPS記録は削除され、元に戻せません。\n\n関連する観察記録${linked.length}件は残ります。`)))return;
+ if(state.routeTrackingProject===id)stopRouteTracking(false);
+ if(p.isPublic&&state.authClient&&state.user){const {error}=await state.authClient.from('expeditions').delete().eq('id',id).eq('owner_id',state.user.id);if(error)return toast(error.message);}
+ for(const r of linked)await storeRecord({...r,projectId:'',syncPending:r.onlinePublished?true:!!r.syncPending});
+ await namedStore('expeditions','readwrite',s=>s.delete(id));await loadExtras();
+ if(state.activeExpeditionId===id)state.activeExpeditionId=null;state.expEditor=null;render();
+ if(linked.some(r=>r.onlinePublished))syncPendingRecords().catch(console.warn);
+ toast(tt('탐사를 삭제했습니다.','Expedition deleted.','探査を削除しました。'));
+}
+// ---------- public route / track ----------
+function simplifyTrack(points,max){
+ if(points.length<=max)return points;
+ const rdp=eps=>{const keep=new Uint8Array(points.length);keep[0]=keep[points.length-1]=1;const stack=[[0,points.length-1]];
+  while(stack.length){const [a,b]=stack.pop();let idx=-1,dmax=0;const A=points[a],B=points[b],dx=B.longitude-A.longitude,dy=B.latitude-A.latitude,len=Math.hypot(dx,dy)||1e-12;
+   for(let i=a+1;i<b;i++){const P=points[i],d=Math.abs(dy*P.longitude-dx*P.latitude+B.longitude*A.latitude-B.latitude*A.longitude)/len;if(d>dmax){dmax=d;idx=i;}}
+   if(idx>0&&dmax>eps){keep[idx]=1;stack.push([a,idx],[idx,b]);}}
+  return points.filter((_,i)=>keep[i]);};
+ let eps=0.00001,out=rdp(eps);while(out.length>max){eps*=2;out=rdp(eps);}
+ return out;
+}
+async function syncExpeditionPublic(p){
+ if(!state.member||!state.authClient||!state.user)throw Error(tt('승인된 베타 계정으로 로그인해 주세요.','Sign in with an approved beta account.','承認済みのベータアカウントでログインしてください。'));
+ const table=state.authClient.from('expeditions');
+ if(!p.isPublic){const {error}=await table.delete().eq('id',p.id).eq('owner_id',state.user.id);if(error)throw error;return;}
+ const r5=v=>Math.round(Number(v)*1e5)/1e5;
+ const stops=routeStopsFor(p).filter(routeCoords).map(s=>({name:s.name,role:s.role||'',latitude:r5(s.latitude),longitude:r5(s.longitude),arrivalDate:s.arrivalDate||'',departureDate:s.departureDate||'',note:s.note||''}));
+ const dates=stops.flatMap(s=>[s.arrivalDate,s.departureDate]).filter(Boolean).sort();
+ const track=p.trackPublic?simplifyTrack(routeTrackFor(p).filter(routeCoords),2000).map(t=>[r5(t.latitude),r5(t.longitude)]):null;
+ const {error}=await table.upsert({id:p.id,owner_id:state.user.id,name:p.name,country:p.country||'',locality:p.locality||'',started_on:dates[0]||null,ended_on:dates[dates.length-1]||null,stops,track,updated_at:new Date().toISOString()},{onConflict:'id'});
+ if(error)throw error;
+}
+async function toggleExpeditionSharing(kind){
+ const p=state.projects.find(x=>x.id===state.activeExpeditionId);if(!p)return;
+ if(!state.member)return toast(tt('승인된 베타 계정으로 로그인해 주세요.','Sign in with an approved beta account.','承認済みのベータアカウントでログインしてください。'));
+ if(!navigator.onLine)return toast(tt('공개 설정을 바꾸려면 인터넷 연결이 필요합니다.','An internet connection is required.','インターネット接続が必要です。'));
+ const next={isPublic:!!p.isPublic,trackPublic:!!p.trackPublic};
+ if(kind==='route'){
+  if(!p.isPublic&&!confirm(tt('탐사 경로(시작·경유지·종료 지점)가 베타 멤버에게 공개됩니다. 희귀식물 자생지로 이어지는 지점이 있다면 공개하지 마세요. 공개할까요?','The route (start, waypoints, end) will be visible to beta members. Do not share points that lead to rare-plant habitats. Make it public?','ルート（出発・経由・終了地点）がベータメンバーに公開されます。希少植物の自生地につながる地点は公開しないでください。公開しますか？')))return;
+  next.isPublic=!p.isPublic;if(!next.isPublic)next.trackPublic=false;
+ }else{
+  if(!p.isPublic)return;
+  if(!p.trackPublic&&!confirm(tt('실제로 이동한 GPS 궤적이 베타 멤버에게 공개됩니다. 자생지 위치가 드러날 수 있으니 주의하세요. 공개할까요?','Your actual GPS track will be visible to beta members and may reveal habitat locations. Share it?','実際のGPS軌跡がベータメンバーに公開され、自生地が分かる可能性があります。公開しますか？')))return;
+  next.trackPublic=!p.trackPublic;
+ }
+ try{await syncExpeditionPublic({...p,...next});}catch(e){return toast(isBeta12SchemaError(e)?SQL12_NOTICE():(e.message||String(e)));}
+ await updateExpedition(p.id,next);state.expSettingsOpen=true;rerenderKeepScroll();
+ toast(next.isPublic?(kind==='track'?(next.trackPublic?tt('GPS 궤적을 공개했습니다.','GPS track shared.','GPS軌跡を公開しました。'):tt('GPS 궤적을 비공개로 바꿨습니다.','GPS track is private again.','GPS軌跡を非公開にしました。')):tt('탐사 경로를 공개했습니다.','Route shared.','ルートを公開しました。')):tt('탐사를 비공개로 바꿨습니다. 서버에서도 삭제했습니다.','Expedition is private again and removed from the server.','探査を非公開にし、サーバーからも削除しました。'));
+}
+// ---------- public expeditions in the dex ----------
+function dexExpeditionSection(d){
+ const list=d.expeditions||[];if(!list.length)return '';
+ return `<section class="dex-section"><h2>${tt('탐사 기록','EXPEDITIONS','探査記録')}</h2>${list.map(x=>`<button type="button" class="dex-exp" data-action="dex-exp" data-exp-id="${esc(x.id)}"><span><strong>${esc(x.name)}</strong><small>${esc([x.country,x.locality].filter(Boolean).join(' · ')||'')}${x.started_on?` · ${esc(x.started_on)}${x.ended_on&&x.ended_on!==x.started_on?` ~ ${esc(x.ended_on)}`:''}`:''}</small><small>${tt(`지점 ${(x.stops||[]).length}개`,`${(x.stops||[]).length} points`,`地点${(x.stops||[]).length}件`)}${x.track?` · ${tt('GPS 궤적 포함','with GPS track','GPS軌跡あり')}`:''}</small></span><span aria-hidden="true">›</span></button>`).join('')}</section>`;
+}
+async function openPublicExpedition(id){
+ const x=state.dex?.expeditions?.find(e=>e.id===id);if(!x)return;teardownDexMap();state.detailBackUser=state.dex.uid;
+ const stops=Array.isArray(x.stops)?x.stops:[];
+ overlay.innerHTML=`<div class="detail-body"><div class="detail-header"><span class="eyebrow">EXPEDITION</span><span class="header-actions">${dexBackButton()}<button type="button" class="close" data-action="close">✕ ${tt('닫기','CLOSE','閉じる')}</button></span></div><h1>${esc(x.name)}</h1><p class="lead">${esc([x.country,x.locality].filter(Boolean).join(' · '))}${x.started_on?` · ${esc(x.started_on)}${x.ended_on&&x.ended_on!==x.started_on?` ~ ${esc(x.ended_on)}`:''}`:''}</p>
+ <div id="pub-exp-map" class="dex-map exp-public-map"></div><p class="mini-muted">${tt('점선: 방문 순서','Dashed: visit order','点線：訪問順')}${x.track?` · ${tt('실선: 실제 GPS 궤적','solid: GPS track','実線：GPS軌跡')}`:''}</p>
+ <div class="detail-section"><h2>${tt('탐사 지점','ROUTE','ルート')}</h2>${stops.map((s,i)=>`<div class="route-stop-row"><div class="route-stop-index">${s.role==='start'||i===0?'S':s.role==='end'?'E':String(i)}</div><div class="route-stop-copy"><strong>${esc(s.name)}</strong><small>${esc(s.arrivalDate||'')}${s.departureDate?' ~ '+esc(s.departureDate):''}</small>${s.note?`<p>${esc(s.note)}</p>`:''}</div></div>`).join('')}</div>
+ <div class="detail-section"><h2>${tt('이 탐사의 관찰 기록','OBSERVATIONS','この探査の観察記録')}</h2><div id="pub-exp-records"><p class="mini-muted">${tt('불러오는 중…','Loading…','読み込み中…')}</p></div></div></div>`;
+ overlay.classList.remove('hidden');overlay.setAttribute('aria-hidden','false');overlay.scrollTop=0;translateUI(overlay);
+ if(typeof window.L!=='undefined'){
+  const m=window.L.map($('#pub-exp-map',overlay),{zoomControl:true,attributionControl:true,minZoom:2,maxZoom:18,maxBounds:[[-85,-180],[85,180]],maxBoundsViscosity:1,scrollWheelZoom:false});
+  window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,noWrap:true,attribution:'&copy; OpenStreetMap contributors'}).addTo(m);
+  const pts=stops.map(s=>[s.latitude,s.longitude]),bounds=[...pts];
+  stops.forEach((s,i)=>window.L.marker([s.latitude,s.longitude],{icon:window.L.divIcon({className:`route-pin exp-pin ${s.role||''}`,html:`<span>${s.role==='start'||i===0?'S':s.role==='end'?'E':i}</span>`,iconSize:[28,28],iconAnchor:[14,14]})}).addTo(m).bindTooltip(esc(s.name)));
+  if(pts.length>1)window.L.polyline(pts,{color:'#333',weight:3,opacity:.85,dashArray:'6 6'}).addTo(m);
+  if(Array.isArray(x.track)&&x.track.length>1){window.L.polyline(x.track,{color:'#2b795b',weight:3,opacity:.9}).addTo(m);bounds.push(...x.track);}
+  if(bounds.length>1)m.fitBounds(bounds,{padding:[24,24],maxZoom:14});else if(bounds.length)m.setView(bounds[0],11);else m.setView([15,105],3);
+  state.dexMap=m;safeResize(m);
+ }
+ try{
+  const {data,error}=await state.authClient.from('field_observations').select('*').eq('expedition_id',id).order('observed_at',{ascending:true}).limit(200);if(error)throw error;
+  await signBucket('field-photos',(data||[]).map(r=>r.photo_path));
+  const recs=(data||[]).map(r=>fromCloud(r,cachedSigned('field-photos',r.photo_path),null));
+  for(const r of recs)if(!state.dexRecords.some(o=>o.id===r.id))state.dexRecords.push(r);
+  const box=$('#pub-exp-records',overlay);if(box)box.innerHTML=recs.length?`<div class="dex-grid">${recs.map((r,i)=>dexTile({no:i+1,src:photoSource(r),bucket:'field-photos',path:r.photoPath,name:r.scientificName||tt('미동정 식물','Unidentified plant','未同定の植物'),badge:`<span class="dex-sub">${esc(fmt(r.observedAt))}</span>`,action:'dex-record',attrs:`data-record-id="${esc(r.id)}"`})).join('')}</div>`:`<p class="mini-muted">${tt('공개된 관찰 기록이 없습니다.','No shared observations.','公開された観察記録はありません。')}</p>`;
+  if(box){translateUI(box);hydrateSigned(box).catch(console.warn);}
+ }catch(e){const box=$('#pub-exp-records',overlay);if(box)box.innerHTML=`<p class="mini-muted">${esc(e.message||String(e))}</p>`;}
+}
+
 // Event delegation keeps the static app dependency-free and compatible with GitHub Pages.
 document.addEventListener('click',async event=>{
  if(event.target.closest('#photo-box')){$('#gallery-input')?.click();return;}
  if(event.target.closest('#pp-photo-box')){$('#pp-gallery-input')?.click();return;}
  const navBtn=event.target.closest('[data-nav]');if(navBtn){nav(navBtn.dataset.nav);return;}
+ const groupPin=event.target.closest('[data-group-key]');if(groupPin){if(state.tab==='home'){state.fullMap=true;state.tab='map';render();}selectGroup(groupPin.dataset.groupKey);return;}
  const venuePin=event.target.closest('[data-venue-id]');if(venuePin){selectVenue(venuePin.dataset.venueId);return;}
  const pin=event.target.closest('[data-map-id]');if(pin){if(state.tab==='home'){state.fullMap=true;state.tab='map';render();}selectSpot(pin.dataset.mapId);return;}
  const imageHit=event.target.closest('.record-card .botanical,.spot-card .botanical');if(imageHit&&imageHit.dataset.photoId){openPhotoViewer(imageHit.dataset.photoId);return;}
@@ -1611,8 +2031,8 @@ document.addEventListener('click',async event=>{
   case 'photo-view':openPhotoViewer(action.dataset.photoId);break;
   case 'photo-close':closePhotoViewer();break;
   case 'home-photo':openHomePhoto();break;
-  case 'project-route':if(state.routeTrackingId!==null)stopRouteTracking(false);state.activeExpeditionId=action.dataset.projectId;state.tab='profile';render();break;
-  case 'route-close':if(state.routeTrackingId!==null)stopRouteTracking(false);state.activeExpeditionId=null;render();break;
+  case 'project-route':if(state.routeTrackingId!==null)stopRouteTracking(false);state.expEditor=null;state.expSettingsOpen=false;state.activeExpeditionId=action.dataset.projectId;state.tab='profile';render();break;
+  case 'route-close':if(state.routeTrackingId!==null)stopRouteTracking(false);state.activeExpeditionId=null;state.expEditor=null;render();break;
   case 'route-edit':routeEditStop(Number(action.dataset.index));break;
   case 'route-move-up':await routeReorderStop(Number(action.dataset.index),-1);break;
   case 'route-move-down':await routeReorderStop(Number(action.dataset.index),1);break;
@@ -1642,6 +2062,28 @@ document.addEventListener('click',async event=>{
   case 'pp-delete':await deletePlacePlant(action.dataset.plantId);break;
   case 'pp-gallery':$('#pp-gallery-input')?.click();break;
   case 'pp-camera':$('#pp-camera-input')?.click();break;
+  case 'exp-new':state.expeditionCreate=true;state.activeExpeditionId=null;state.expEditor=newExpEditor(null);render();break;
+  case 'exp-cancel':state.expeditionCreate=false;state.expEditor=null;render();break;
+  case 'exp-save':await saveExpEditor();break;
+  case 'exp-add-wp':state.expEditor.waypoints.push(blankStop('waypoint'));renderExpEditor();break;
+  case 'exp-wp-up':case 'exp-wp-down':{const ed=state.expEditor,k=Number(action.dataset.index)-1,j=k+(action.dataset.action==='exp-wp-up'?-1:1);if(ed&&ed.waypoints[k]&&ed.waypoints[j]){[ed.waypoints[k],ed.waypoints[j]]=[ed.waypoints[j],ed.waypoints[k]];renderExpEditor();}break;}
+  case 'exp-wp-remove':{const ed=state.expEditor;ed.waypoints.splice(Number(action.dataset.index)-1,1);ed.active=null;ed.searchIdx=null;renderExpEditor();break;}
+  case 'exp-search-open':{const ed=state.expEditor,i=Number(action.dataset.index);ed.searchIdx=ed.searchIdx===i?null:i;ed.results=[];renderExpEditor();$('#exp-search-q')?.focus();break;}
+  case 'exp-search':await expSearch(Number(action.dataset.index));break;
+  case 'exp-search-pick':expPickResult(Number(action.dataset.index),Number(action.dataset.r));break;
+  case 'exp-gps':expUseGPS(Number(action.dataset.index));break;
+  case 'exp-pin':{const ed=state.expEditor,i=Number(action.dataset.index);ed.active=ed.active===i?null:i;renderExpEditor();if(ed.active!==null)$('#exp-editor-map')?.scrollIntoView({block:'center',behavior:'smooth'});break;}
+  case 'exp-delete':await deleteExpedition(action.dataset.projectId);break;
+  case 'exp-toggle-public':await toggleExpeditionSharing('route');break;
+  case 'exp-toggle-track':await toggleExpeditionSharing('track');break;
+  case 'dex-exp':await openPublicExpedition(action.dataset.expId);break;
+  case 'pp-view':plantDetail(action.dataset.plantId);break;
+  case 'pp-photo-add':$('#pp-gallery-input')?.click();break;
+  case 'pp-photo-remove':state.ppPhotos.splice(Number(action.dataset.index),1);refreshPpPhotos();break;
+  case 'pp-photo-cover':{const [x]=state.ppPhotos.splice(Number(action.dataset.index),1);if(x)state.ppPhotos.unshift(x);refreshPpPhotos();break;}
+  case 'loc-open':openLocationOnMap();break;
+  case 'backup-local':await backupLocalRecords();break;
+  case 'backup-record':{const local=state.records.find(x=>x.id===action.dataset.recordId);if(local&&state.member){await storeRecord({...local,onlinePublished:true,syncPending:true,hidden:true});await syncPendingRecords();detail(local.id);toast(tt('비공개로 온라인에 백업했습니다.','Backed up online as private.','非公開でバックアップしました。'));}break;}
   case 'obs-photo-add':$(action.dataset.kind==='habitat'?'#habitat-gallery-input':'#gallery-input')?.click();break;
   case 'obs-photo-remove':{const list=action.dataset.kind==='habitat'?state.formHabitat:state.formPhotos;list.splice(Number(action.dataset.index),1);refreshObsPhotos();break;}
   case 'obs-photo-cover':{const [x]=state.formPhotos.splice(Number(action.dataset.index),1);if(x)state.formPhotos.unshift(x);refreshObsPhotos();break;}
@@ -1681,17 +2123,19 @@ document.addEventListener('click',async event=>{
   case 'delete-account':await deleteAccount();break;
  }
 });
-document.addEventListener('keydown',event=>{if(event.key==='Enter'&&event.target.id==='address-query'){event.preventDefault();searchAddress();return;}if(event.key==='Escape'){closeDetail();closePhotoViewer();if(state.fullMap)setFullscreenMap(false);}if((event.key==='Enter'||event.key===' ')&&event.target.matches('[data-map-id],[data-venue-id],#photo-box,#pp-photo-box')){event.preventDefault();event.target.dispatchEvent(new MouseEvent('click',{bubbles:true}));}});
-document.addEventListener('input',event=>{if(event.target.id==='search'){state.search=event.target.value;clearTimeout(state.searchTimer);state.searchTimer=setTimeout(()=>{const pos=event.target.selectionStart??state.search.length;render();const field=$('#search');if(field){field.focus();field.setSelectionRange(pos,pos);}},350);}if(event.target.closest('#observation-form'))saveDraftSoon();});
-document.addEventListener('change',event=>{if(event.target.id==='language-choice'){const v=event.target.value;if(v==='auto')localStorage.removeItem('pm-language');else localStorage.setItem('pm-language',v);state.locale=v==='auto'?(/^ja/i.test(navigator.language)?'ja':/^en/i.test(navigator.language)?'en':'ko'):v;render();return;}if(event.target.closest('#observation-form'))saveDraftSoon();if(event.target.name==='projection'){
+document.addEventListener('keydown',event=>{if(event.key==='Enter'&&event.target.id==='exp-search-q'&&state.expEditor){event.preventDefault();expSearch(state.expEditor.searchIdx);return;}if(event.key==='Enter'&&event.target.id==='address-query'){event.preventDefault();searchAddress();return;}if(event.key==='Escape'){closeDetail();closePhotoViewer();if(state.fullMap)setFullscreenMap(false);}if((event.key==='Enter'||event.key===' ')&&event.target.matches('[data-map-id],[data-venue-id],[data-group-key],#photo-box,#pp-photo-box')){event.preventDefault();event.target.dispatchEvent(new MouseEvent('click',{bubbles:true}));}});
+document.addEventListener('input',event=>{if(state.expEditor){if(event.target.id==='exp-name'){state.expEditor.name=event.target.value;return;}const sf=event.target.dataset?.stopField;if(sf){const st=expStops(state.expEditor)[Number(event.target.dataset.index)];if(st)st[sf]=event.target.value;return;}}if(event.target.id==='search'){state.search=event.target.value;clearTimeout(state.searchTimer);state.searchTimer=setTimeout(()=>{const pos=event.target.selectionStart??state.search.length;render();const field=$('#search');if(field){field.focus();field.setSelectionRange(pos,pos);}},350);}if(event.target.closest('#observation-form'))saveDraftSoon();});
+document.addEventListener('change',event=>{if(event.target.id==='exp-roundtrip'&&state.expEditor){state.expEditor.roundTrip=event.target.checked;renderExpEditor();return;}if(event.target.id==='language-choice'){const v=event.target.value;if(v==='auto')localStorage.removeItem('pm-language');else localStorage.setItem('pm-language',v);state.locale=v==='auto'?(/^ja/i.test(navigator.language)?'ja':/^en/i.test(navigator.language)?'en':'ko'):v;render();return;}if(event.target.closest('#observation-form'))saveDraftSoon();if(event.target.name==='projection'){
   state.projection=event.target.value==='mercator'?'mercator':'equal-earth';localStorage.setItem('pm-map-projection',state.projection);
   state.detailMode=false;state.leafletView=null;state.equalZoom=1;state.equalCenter={x:450,y:225};render();toast(`${MAP_NAMES[state.projection]}로 변경했습니다.`);return;}
-if(event.target.id==='gallery-input'||event.target.id==='camera-input'){addObsPhotos(event.target.files,'plant');event.target.value='';}if(event.target.id==='habitat-gallery-input'){addObsPhotos(event.target.files,'habitat');event.target.value='';}if(event.target.id==='pp-gallery-input'||event.target.id==='pp-camera-input'){choosePlantPhoto(event.target.files?.[0]);event.target.value='';}if(event.target.id==='import-input'){importRecords(event.target.files?.[0]);event.target.value='';}if(event.target.id==='venue-photo-input'){addVenuePhotos(event.target.files);event.target.value='';}if(event.target.id==='avatar-input'){uploadAvatar(event.target.files?.[0]);event.target.value='';}if(event.target.name==='displayName'&&event.target.closest('#profile-form'))updateNameHint(event.target);});
+if(event.target.id==='gallery-input'||event.target.id==='camera-input'){addObsPhotos(event.target.files,'plant');event.target.value='';}if(event.target.id==='habitat-gallery-input'){addObsPhotos(event.target.files,'habitat');event.target.value='';}if(event.target.id==='pp-gallery-input'||event.target.id==='pp-camera-input'){addPpPhotos(event.target.files);event.target.value='';}if(event.target.id==='import-input'){importRecords(event.target.files?.[0]);event.target.value='';}if(event.target.id==='venue-photo-input'){addVenuePhotos(event.target.files);event.target.value='';}if(event.target.id==='avatar-input'){uploadAvatar(event.target.files?.[0]);event.target.value='';}if(event.target.name==='displayName'&&event.target.closest('#profile-form'))updateNameHint(event.target);});
 document.addEventListener('submit',event=>{if(event.target.id==='project-form'){event.preventDefault();saveExpedition(event.target).catch(e=>toast(e.message));}if(event.target.id==='route-stop-form'){event.preventDefault();saveRouteStop(event.target).catch(e=>toast(e.message));}if(event.target.id==='observation-form'){event.preventDefault();saveForm(event.target);}if(event.target.id==='suggest-form'){event.preventDefault();addSuggestion(event.target);}if(event.target.id==='comment-form'){event.preventDefault();addComment(event.target);}if(event.target.id==='venue-form'){event.preventDefault();savePlace(event.target);}if(event.target.id==='place-plant-form'){event.preventDefault();savePlacePlant(event.target);}if(event.target.id==='people-search'){event.preventDefault();searchPeople($('#people-query')?.value);}if(event.target.id==='auth-form'){event.preventDefault();submitAuth(event.target);}if(event.target.id==='profile-form'){event.preventDefault();submitProfile(event.target);}});
-document.addEventListener('toggle',event=>{const key=event.target?.dataset?.acc;if(key){setSectionOpen(key,event.target.open);if(key==='places'&&event.target.open&&venueFormOpen())mountVenuePicker();}},true);
+document.addEventListener('toggle',event=>{if(event.target?.classList?.contains('exp-settings'))state.expSettingsOpen=event.target.open;const key=event.target?.dataset?.acc;if(key){setSectionOpen(key,event.target.open);if(key==='places'&&event.target.open&&venueFormOpen())mountVenuePicker();}},true);
 document.addEventListener('toggle',event=>{if(event.target?.id==='venue-details'){if(event.target.open)mountVenuePicker();else teardownVenuePicker();}},true);
 document.addEventListener('scroll',event=>{if(event.target?.classList?.contains('pg-track'))sliderIndexChanged(event.target);},true);
+document.addEventListener('load',event=>{const t=event.target?.closest?.('.pg-track');if(t)fitSliderHeight(t);},true);
 (async function init(){
+ await loadCountries().catch(console.warn);
  try{state.db=await openDatabase();await reload();await loadExtras();if(state.draft?.editingId&&state.records.some(r=>r.id===state.draft.editingId)){state.editingId=state.draft.editingId;state.tab='record';}}catch(e){console.error('IndexedDB unavailable',e);toast('기기 저장소를 열 수 없습니다. 사생활 보호 모드 또는 브라우저 설정을 확인하세요.');}
  try{const res=await fetch('./assets/landPath.json');if(!res.ok)throw Error('지도 경계 파일 없음');state.landPath=await res.json();}catch(e){console.error('Map boundary unavailable',e);}
  await initAuth();
