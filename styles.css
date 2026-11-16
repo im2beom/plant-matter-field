@@ -387,3 +387,40 @@
 .route-pin.exp-pin{background:none;border:0}
 .route-pin.exp-pin span{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#333;color:#fff;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35);font-size:11px;line-height:1}
 .route-pin.exp-pin.start span{background:#2f7158}.route-pin.exp-pin.end span{background:#111}
+/* BETA 13 — ⑥ photo tiles: images are positioned absolutely (centered cover crop) so iOS Safari
+   cannot shift them down or cut them off inside square / 4:3 boxes. */
+.dex-photo,.group-thumb,.venue-manage-photo,.dex-place-photo,.venue-pop-photo,.botanical,.vp-thumb{position:relative}
+.vp-img{position:absolute;inset:0;width:auto;height:auto}
+.place-plant-card .pp-photo-img{position:absolute;inset:0;width:auto;height:auto}
+.dex-photo>img,.vp-img>img,.pp-photo-img>img,.group-thumb>img,.venue-manage-photo>img,.dex-place-photo>img,.venue-pop-photo>img,.botanical>img{position:absolute;inset:0;width:100%;height:100%;max-width:none;object-fit:cover;object-position:50% 50%}
+.vp-img>img,.detail-picture .botanical>img{object-fit:contain}
+/* ⑦ photo slider: one photo per swipe, no gap, centred snap; height changes only after the swipe settles */
+.pg-track{gap:0;scroll-snap-type:x mandatory;overscroll-behavior-x:contain}
+.pg-slide{scroll-snap-align:center;scroll-snap-stop:always}
+/* ⑧ photo pickers: [▧ album] [◉ camera] per section, small "+" tile with the count, one-line note */
+.photo-field-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:0 0 8px}
+.photo-field-title{font-size:12px;color:#333}
+.photo-pick-row{display:flex;gap:6px}
+.pick-btn{border:1px solid #bcbcbc;background:#fff;min-height:32px;padding:5px 10px;font-size:11px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;color:#222}
+.pick-btn span{font-size:12px;line-height:1}
+.pick-btn:disabled{opacity:.4;cursor:default}
+.photo-field .vp-grid,.habitat-field.photo-field .vp-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+.photo-field .vp-add{aspect-ratio:1/1;gap:2px}
+.photo-field .vp-add b{font-size:17px;line-height:1}
+.photo-field .vp-add small{font-size:9px;color:#999}
+.photo-note,.form-field small.photo-note,.profile-head-info small.photo-note{display:block;font-size:10.5px;color:#777;margin:6px 0 0;line-height:1.5}
+.photo-field.habitat-field{margin-top:4px}
+.profile-head-actions.photo-field .pick-btn{min-height:34px}
+/* ③ ④ kept plants without a space, public / private */
+.place-plant-card.is-private{background:#fafafa}
+.place-plant-card .private-tag{margin-right:4px}
+.pp-detail-tags{display:flex;align-items:center;gap:8px;margin:12px 0 0}
+.pp-detail-tags small{font-size:11px;color:#777}
+.pp-visibility{margin-top:10px}
+.pp-hint{margin:10px 0 4px}
+.dex-group.no-space{color:#555}
+/* ⑨ header lockup about 25% smaller (≈273px → ≈205px wide on a 390px phone) */
+.topbar{min-height:60px;padding-top:12px;padding-bottom:12px}
+.brand-lockup{width:clamp(150px,52.5vw,248px)}
+/* ② keep "외 1곳" / names together when the label wraps on narrow phones */
+.rank-row small,.person-info small,.dex-account,.profile-head .account-label{word-break:keep-all;overflow-wrap:anywhere}
