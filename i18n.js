@@ -1287,7 +1287,7 @@ export function translateText(value,locale){
  if(plural)return locale==='en'?`${plural[1]} records`:locale==='ja'?`${plural[1]}件の記録`:clean;
  return value;
 }
-const SKIP='script,style,textarea,.group-copy,.dex-exp strong,.loc-text,.exp-stop-loc,.route-stop-copy,.project-card strong,.dex-group,.venue-manage strong,.pp-add-row select,.long-text,.comment-row p,.venue-plant-list,.feed-name,.record-info em,.pp-info em,.pp-origin,.pp-note,.address-result,.location-readout,.person-info,.author-chip,.dex-tile em,.dex-head h1,.dex-place,.contact-row strong,.profile-head-info strong';
+const SKIP='script,style,textarea,.bottom-nav .nav-item,.ev-title,.md-title,.group-copy,.dex-exp strong,.loc-text,.exp-stop-loc,.route-stop-copy,.project-card strong,.dex-group,.venue-manage strong,.pp-add-row select,.long-text,.comment-row p,.venue-plant-list,.feed-name,.record-info em,.pp-info em,.pp-origin,.pp-note,.address-result,.location-readout,.person-info,.author-chip,.dex-tile em,.dex-head h1,.dex-place,.contact-row strong,.profile-head-info strong';
 // The original (Korean) text of every node/attribute we rewrite is remembered, so switching
 // ko → en → ja → ko always translates from the source instead of from the previous language.
 // (Previously static parts such as the bottom navigation stayed in English after en → ja or en → ko.)

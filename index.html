@@ -7,38 +7,37 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="RAINFOREST MEMORIES" />
-  <meta name="description" content="RAINFOREST MEMORIES BY PLANT MATTER — 식물 현장 관찰 기록" />
+  <meta name="description" content="RAINFOREST MEMORIES BY PLANT MATTER — 내 식물과 야생 발견 기록" />
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="apple-touch-icon" href="./assets/icon-180.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="./assets/icon-512.png" />
-  <link rel="stylesheet" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-  <link rel="stylesheet" href="./styles.css?v=13.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300;0,700;0,800;1,300;1,700&family=Noto+Sans+KR:wght@300;700&display=swap" />
+  <link rel="stylesheet" href="./styles.css?v=15.0" />
   <script src="./config.js"></script>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
   <title>RAINFOREST MEMORIES BY PLANT MATTER</title>
 </head>
 <body>
   <div class="app">
-    <header class="topbar">
+    <header class="topbar" id="topbar">
       <button type="button" class="brand" data-nav="home" aria-label="홈으로 이동">
         <img src="./assets/titles/brand-lockup.png" alt="RAINFOREST MEMORIES — Designed by PLANT MATTER" class="brand-lockup" width="1705" height="275" />
       </button>
-      <span class="status">BETA 13</span>
+      <span class="tb-right"><span class="status">BETA 15</span></span>
     </header>
     <main id="content" aria-live="polite"><div class="loader">식물 관찰 기록을 불러오는 중…</div></main>
     <nav class="bottom-nav" aria-label="메인 메뉴">
-      <button type="button" data-nav="home" class="nav-item active" aria-label="홈"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10H3zM9 20v-7h6v7"/></svg><span>HOME</span></button>
-      <button type="button" data-nav="map" class="nav-item" aria-label="지도"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15"/></svg><span>MAP</span></button>
-      <button type="button" data-nav="record" class="nav-item" aria-label="관찰 기록 등록"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M12 7v10M7 12h10"/></svg><span>RECORD</span></button>
-      <button type="button" data-nav="profile" class="nav-item" aria-label="프로필"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-5 3-7 8-7s8 2 8 7"/></svg><span>PROFILE</span></button>
-      <button type="button" data-nav="options" class="nav-item" aria-label="설정"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="8" cy="7" r="2" fill="white"/><circle cx="15" cy="12" r="2" fill="white"/><circle cx="11" cy="17" r="2" fill="white"/></svg><span>OPTIONS</span></button>
+      <button type="button" data-nav="home" class="nav-item active">HOME</button>
+      <button type="button" data-nav="plant" class="nav-item">PLANT</button>
+      <button type="button" data-nav="matter" class="nav-item">MATTER</button>
+      <button type="button" data-nav="options" class="nav-item">OPTION</button>
     </nav>
   </div>
   <div id="detail-overlay" class="overlay hidden" aria-hidden="true"></div>
   <div id="image-lightbox" class="image-lightbox hidden" role="dialog" aria-label="사진 전체 화면 보기" aria-hidden="true"></div>
   <div id="toast" class="toast hidden" role="status"></div>
-  <script type="module" src="./app.js?v=13.0"></script>
+  <script type="module" src="./app.js?v=15.0"></script>
 </body>
 </html>
